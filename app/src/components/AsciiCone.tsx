@@ -55,6 +55,11 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       paths: number[][] = [],
       pathSeed = 0;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const MONO = `${cssVar("--font-jetbrains-mono") || "ui-monospace"}, ui-monospace, monospace`;
+    const SANS = `${cssVar("--font-inter-tight") || "ui-sans-serif"}, ui-sans-serif, system-ui`;
+    // only animate while the hero is on screen and the tab is visible, capped at ~30fps
+    let onScreen = true;
+    let last = 0;
 
     const colors = () => ({
       bg: cssVar("--hero-bg"),
@@ -110,7 +115,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       C = colors();
       bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bctx.clearRect(0, 0, w, h);
-      bctx.font = `500 12px "JetBrains Mono", ui-monospace, monospace`;
+      bctx.font = `500 12px ${MONO}`;
       bctx.textBaseline = "top";
       const lnT = Math.log(p.target);
       const winAbove = p.dir === "above";
@@ -166,7 +171,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     };
 
     const pill = (x: number, y: number, text: string, bg: string, fg: string, align: "left" | "center" | "right" = "center") => {
-      ctx.font = `600 12px "Inter Tight", ui-sans-serif, system-ui`;
+      ctx.font = `600 12px ${SANS}`;
       const tw = ctx.measureText(text).width;
       const pw = tw + 18;
       const ph = 24;
@@ -181,17 +186,20 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     };
 
     const frame = (now: number) => {
-      if (w < 1 || h < 1) {
+      raf = 0;
+      if (!onScreen || document.hidden) return; // resumed by the observers below
+      if (w < 1 || h < 1 || now - last < 33) {
         raf = requestAnimationFrame(frame);
         return;
       }
+      last = now;
       const p = props.current;
       const L = buildBase();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, el.width, el.height);
       ctx.drawImage(base, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.font = `500 12px "JetBrains Mono", ui-monospace, monospace`;
+      ctx.font = `500 12px ${MONO}`;
       ctx.textBaseline = "top";
 
       // twinkle
@@ -229,7 +237,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       const cycle = reduced ? 1 : ((now / 1000) % 5.2) / 4.2;
       const head = Math.min(1, cycle);
       const steps = L.xE - L.x0;
-      ctx.font = `700 13px "JetBrains Mono", ui-monospace, monospace`;
+      ctx.font = `700 13px ${MONO}`;
       paths.forEach((path, k) => {
         const end = path[path.length - 1];
         const win = p.dir === "above" ? end >= Math.log(p.target) : end <= Math.log(p.target);
@@ -280,6 +288,15 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
 
       raf = requestAnimationFrame(frame);
     };
+    const kick = () => {
+      if (!raf && onScreen && !document.hidden) raf = requestAnimationFrame(frame);
+    };
+    const io = new IntersectionObserver(([e]) => {
+      onScreen = e.isIntersecting;
+      kick();
+    });
+    io.observe(wrap.current!);
+    document.addEventListener("visibilitychange", kick);
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -291,6 +308,8 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", kick);
     };
   }, [theme]);
 

@@ -1,7 +1,7 @@
 // Static market model for the UI prototype.
 // Mirrors docs/02-product-spec.md §4. Everything here is simulated in the browser.
 
-export type AssetId = "ETH" | "BTC" | "SOL";
+export type AssetId = "ETH"; // Stance is ETH-only
 export type Direction = "above" | "below";
 export type Side = "UP" | "DOWN";
 
@@ -16,11 +16,9 @@ export interface Asset {
 
 export const ASSETS: Record<AssetId, Asset> = {
   ETH: { id: "ETH", name: "Ether", spot: 2575, vol: 0.62, grid: 100, hue: "#9AA8FF" },
-  BTC: { id: "BTC", name: "Bitcoin", spot: 68400, vol: 0.48, grid: 1000, hue: "#FFB45C" },
-  SOL: { id: "SOL", name: "Solana", spot: 142, vol: 0.8, grid: 5, hue: "#7CF0C8" },
 };
 
-export const ASSET_LIST: Asset[] = [ASSETS.ETH, ASSETS.BTC, ASSETS.SOL];
+export const ASSET_LIST: Asset[] = [ASSETS.ETH];
 
 /** Demo clock: fixed so every number in the prototype is reproducible. */
 export const NOW = new Date("2026-11-06T12:00:00Z").getTime();

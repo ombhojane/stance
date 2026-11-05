@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { expiryLabel } from "@/lib/market";
@@ -34,14 +34,14 @@ function Done() {
 
   return (
     <div className="mx-auto max-w-[560px] pt-16 sm:pt-24">
-      <motion.span
+      <m.span
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 22 }}
         className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent"
       >
         <Check size={22} strokeWidth={3} />
-      </motion.span>
+      </m.span>
       <h1 className="mt-6 text-4xl font-semibold tracking-tight">Stance placed.</h1>
       <p className="mt-3 text-xl leading-snug text-mute">
         <SentenceText amount={p.amount} asset={p.asset} dir={p.dir} target={p.target} expiry={p.expiry} />

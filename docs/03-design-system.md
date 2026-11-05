@@ -4,7 +4,10 @@
 - **bencho.dev**: interactive React micro-interactions. Borrowed: **slide to confirm**, **rolling counter**, **tick slider**, **stepper (− 95 +)**, **toast stack**, **dot-matrix** textures, **tilt card**. Dark canvas, soft #161618 tiles, large radii, pill buttons, tactile feedback.
 - **Pinterest** ("playful minimal fintech", "prediction market app ui", "neo-brutalist web3"): Wise-style lime accent on dark; Polymarket-style yes/no pills with chance rings; neo-brutalist chunky type for the hero only.
 
-## Direction (v3): calm, sentence-first (current)
+## Logo
+The mark is a 7×5 dot matrix, the same grid language as the ASCII price cone, with the payoff ramp lit (flat, rise, flat). The last dot is lime: the flag, your target. No container shape, no gradient. Wordmark: "stance" in Inter Tight semibold, −4% tracking. The app icon is the same mark on ink (`src/lib/iconArt.tsx`, rendered by `next/og`).
+
+## Direction (v3): calm, sentence-first
 **Hero layout borrowed from great travel heroes:** headline in clear space → the composer → the visual. Nothing stacks on anything else.
 1. Headline says what you do and what you're promised: *"Back your price call. Lose only what you put in."*
 2. The composer *is* the sentence: "I want to make **$500** if **ETH** goes **above** **$3,000** by **Nov 27**." Every bold word is a slot that opens its editor in place. Below a hairline: *You pay* · *Chance of the full $693* · **Take stance**.

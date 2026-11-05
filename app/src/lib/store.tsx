@@ -1,7 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
-import { ASSETS, AssetId, Direction, NOW, Side, expiryTime, fairUp, yearsUntil, unitPayout, BID_HAIRCUT } from "./market";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useReducer, useState } from "react";
+
+// Read saved stances before the browser paints, so pages never flash empty.
+const useBeforePaint = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+import { ASSETS, AssetId, Direction, NOW, Side, quote, expiryTime, fairUp, yearsUntil, unitPayout, BID_HAIRCUT } from "./market";
 
 export type PositionStatus = "open" | "sold" | "settled" | "redeemed";
 
@@ -58,44 +61,46 @@ type Action =
   | { type: "withdraw"; id: string; amount: number }
   | { type: "reset" };
 
-const KEY = "stance.v1";
+const KEY = "stance.v2";
 
 function seed(): Omit<State, "hydrated"> {
+  // an open DOWN stance bought a few days ago, and a settled UP one to collect
+  const q = quote({ amount: 300, asset: "ETH", dir: "below", target: 2300, expiry: "2026-12-25" });
   return {
     balance: 10000,
     positions: [
       {
-        id: "p-seed-sol",
+        id: "p-seed-down",
         createdAt: NOW - 3 * 86400000,
-        asset: "SOL",
+        asset: "ETH",
         dir: "below",
         side: "DOWN",
-        target: 130,
+        target: 2300,
         amount: 300,
         expiry: "2026-12-25",
-        K1: 130,
-        K2: 140,
-        units: 41.2,
-        cost: 112,
-        chanceAtBuy: 0.36,
+        K1: q.K1,
+        K2: q.K2,
+        units: q.units,
+        cost: Math.round(q.cost * 0.72),
+        chanceAtBuy: Math.max(0.05, q.chanceFull - 0.06),
         status: "open",
       },
       {
-        id: "p-seed-btc",
+        id: "p-seed-up",
         createdAt: NOW - 18 * 86400000,
-        asset: "BTC",
+        asset: "ETH",
         dir: "above",
         side: "UP",
-        target: 66000,
+        target: 2450,
         amount: 400,
         expiry: "2026-10-30",
-        K1: 63000,
-        K2: 66000,
-        units: 0.21,
+        K1: 2200,
+        K2: 2450,
+        units: 2.52,
         cost: 230,
         chanceAtBuy: 0.31,
         status: "settled",
-        settlePrice: 67180,
+        settlePrice: 2521.4,
       },
     ],
     vaults: [],
@@ -136,18 +141,18 @@ function reducer(s: State, a: Action): State {
 
 interface Ctx extends State {
   dispatch: React.Dispatch<Action>;
-  toasts: Toast[];
   toast: (t: Omit<Toast, "id">) => void;
   dismiss: (id: string) => void;
 }
 
 const StoreCtx = createContext<Ctx | null>(null);
+const ToastCtx = createContext<Toast[]>([]);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { ...seed(), hydrated: false });
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     try {
       const raw = localStorage.getItem(KEY);
       dispatch({ type: "hydrate", state: raw ? JSON.parse(raw) : seed() });
@@ -176,8 +181,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [dismiss],
   );
 
-  const value = useMemo(() => ({ ...state, dispatch, toasts, toast, dismiss }), [state, toasts, toast, dismiss]);
-  return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
+  const value = useMemo(() => ({ ...state, dispatch, toast, dismiss }), [state, toast, dismiss]);
+  return (
+    <StoreCtx.Provider value={value}>
+      <ToastCtx.Provider value={toasts}>{children}</ToastCtx.Provider>
+    </StoreCtx.Provider>
+  );
+}
+
+export function useToasts() {
+  return useContext(ToastCtx);
 }
 
 export function useStore() {
@@ -195,6 +208,7 @@ export function useLiveSpot(asset: AssetId, intervalMs = 2200): number {
     setSpot(base);
     let x = base;
     const id = setInterval(() => {
+      if (document.hidden) return;
       const drift = (base - x) * 0.08;
       const shock = (Math.random() - 0.5) * base * 0.0016;
       x = x + drift + shock;

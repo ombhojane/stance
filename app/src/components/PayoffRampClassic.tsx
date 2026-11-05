@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, memo } from "react";
 import { ASSETS, AssetId, Side, unitPayout, yearsUntil } from "@/lib/market";
 import { price, usd } from "@/lib/format";
 
@@ -22,7 +22,7 @@ interface Props {
 
 const W = 640;
 
-export function PayoffRampClassic({ asset, side, K1, K2, units, cost, spot, expiry, settlePrice, scrub = true, showOdds = true, compact = false, initialScrub }: Props) {
+function PayoffRampClassicImpl({ asset, side, K1, K2, units, cost, spot, expiry, settlePrice, scrub = true, showOdds = true, compact = false, initialScrub }: Props) {
   const uid = useId().replace(/:/g, "");
   const H = compact ? 120 : 260;
   const padX = compact ? 6 : 18;
@@ -198,3 +198,6 @@ export function PayoffRampClassic({ asset, side, K1, K2, units, cost, spot, expi
     </div>
   );
 }
+
+/** Memoised: re-renders only when its numbers change. */
+export const PayoffRampClassic = memo(PayoffRampClassicImpl);

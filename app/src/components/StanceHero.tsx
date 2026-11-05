@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, Coins, Flag, Info, TriangleAlert } from "lucide-react";
-import { ASSETS, ASSET_LIST, AssetId, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
+import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
 import { useLiveSpot } from "@/lib/store";
 import { pct, price, usd } from "@/lib/format";
 import { AsciiCone } from "./AsciiCone";
-import { AssetDot, Chip, OddsRing, Stepper, TickSlider } from "./controls";
+import { Chip, OddsRing, Stepper, TickSlider } from "./controls";
 import { RollingNumber } from "./RollingNumber";
 
 type Field = "amount" | "target" | "date" | null;
@@ -41,12 +42,6 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   }, []);
 
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
-  const setAsset = (id: AssetId) => {
-    if (id === draft.asset) return;
-    const ratio = draft.target / ASSETS[draft.asset].spot;
-    const n = ASSETS[id];
-    set({ asset: id, target: Math.max(n.grid, roundTo(n.spot * ratio, n.grid)) });
-  };
   const setDir = (dir: Direction) => {
     if (dir === draft.dir) return;
     const mirrored = roundTo(2 * a.spot - draft.target, a.grid);
@@ -62,13 +57,8 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
       <div className="relative h-[560px] overflow-hidden rounded-[36px] bg-hero ring-1 ring-line/60 sm:h-[660px]">
         <AsciiCone asset={draft.asset} dir={draft.dir} target={draft.target} expiry={draft.expiry} spot={live} chance={q.chanceFull} onTarget={(v) => set({ target: v })} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center px-4 pt-9 text-center sm:pt-12">
-          <span className="inline-flex items-center gap-3 rounded-full bg-tile/80 px-3 py-1.5 font-mono text-[11px] text-mute backdrop-blur">
-            <span className="live-dot" />
-            {ASSET_LIST.map((x) => (
-              <span key={x.id} className={x.id === draft.asset ? "text-ink" : ""}>
-                {x.id} {price(x.id === draft.asset ? Math.round(live) : x.spot)}
-              </span>
-            ))}
+          <span className="tnum rounded-full bg-tile/80 px-3 py-1.5 font-mono text-[11px] text-mute backdrop-blur">
+            ETH <span className="text-ink">{price(Math.round(live))}</span>
           </span>
           <h1 className="mt-5 text-[clamp(2.4rem,6.2vw,5rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
             Trade what you think
@@ -76,34 +66,17 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
             <span className="serif font-normal">happens next.</span>
           </h1>
         </div>
-        <span className="pointer-events-none absolute bottom-[132px] left-6 hidden font-mono text-[11px] text-mute sm:block">↕ drag the flag</span>
       </div>
 
       {/* ── Composer (docked like a search bar) ── */}
       <div ref={bar} className="relative z-20 mx-auto -mt-[118px] w-full max-w-[1000px] px-2 sm:px-6">
-        {/* asset tabs */}
-        <div className="flex">
-          {ASSET_LIST.map((x) => {
-            const on = x.id === draft.asset;
-            return (
-              <button
-                key={x.id}
-                onClick={() => setAsset(x.id)}
-                className={`flex items-center gap-2 rounded-t-2xl px-4 py-2.5 text-sm font-semibold transition sm:px-5 ${on ? "bg-tile text-ink" : "bg-tile/70 text-mute backdrop-blur hover:text-ink"}`}
-              >
-                <AssetDot asset={x.id} size={18} /> {x.id}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rounded-[28px] rounded-tl-none bg-tile p-3 shadow-[0_30px_80px_-30px_rgba(0,0,0,.45)] ring-1 ring-line sm:p-4">
+        <div className="rounded-[28px] bg-tile p-3 shadow-[0_30px_80px_-30px_rgba(0,0,0,.45)] ring-1 ring-line sm:p-4">
           {/* direction tabs */}
           <div className="flex gap-5 px-2 pb-3 pt-1 text-sm">
             {(["above", "below"] as Direction[]).map((d) => (
               <button key={d} onClick={() => setDir(d)} className={`relative pb-1.5 font-medium transition ${draft.dir === d ? "text-ink" : "text-mute hover:text-ink"}`}>
                 {d === "above" ? "Goes up" : "Goes down"}
-                {draft.dir === d && <motion.span layoutId="dir-underline" className={`absolute inset-x-0 -bottom-0.5 h-0.5 rounded-full ${d === "above" ? "bg-up" : "bg-down"}`} />}
+                {draft.dir === d && <m.span layoutId="dir-underline" className={`absolute inset-x-0 -bottom-0.5 h-0.5 rounded-full ${d === "above" ? "bg-up" : "bg-down"}`} />}
               </button>
             ))}
           </div>
@@ -146,7 +119,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
           {/* popover editors */}
           <AnimatePresence>
             {open && (
-              <motion.div
+              <m.div
                 key={open}
                 initial={{ opacity: 0, y: -6, height: 0 }}
                 animate={{ opacity: 1, y: 0, height: "auto" }}
@@ -221,14 +194,14 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
 
         <AnimatePresence>
           {q.nudge && (
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -236,7 +209,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
             >
               {q.nudge.tone === "warn" ? <TriangleAlert size={15} /> : <Info size={15} />}
               {q.nudge.tone === "warn" ? "Already there. Pick a target further away." : q.nudge.text.split(".")[0] + "."}
-            </motion.p>
+            </m.p>
           )}
         </AnimatePresence>
       </div>

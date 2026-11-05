@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -81,9 +80,9 @@
   --color-sun: var(--sun);
   --color-hero: var(--hero-bg);
 
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-tile: 28px;
 }
@@ -116,16 +115,6 @@ body {
   color: var(--on-accent);
 }
 
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.045;
-  background-image: radial-gradient(var(--grain) 0.6px, transparent 0.6px);
-  background-size: 3px 3px;
-}
 
 .dots {
   background-image: radial-gradient(color-mix(in oklab, var(--ink) 10%, transparent) 1px, transparent 1px);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, memo } from "react";
 import { AssetId, Side, unitPayout } from "@/lib/market";
 import { price, usd } from "@/lib/format";
 
@@ -24,7 +24,7 @@ interface Props {
 const W = 640;
 
 /** What you'd make or lose at every ending price. One line, plain labels. */
-export function PayoffRamp({ asset, side, K1, K2, units, cost, spot, settlePrice, scrub = true, compact = false, initialScrub }: Props) {
+function PayoffRampImpl({ asset, side, K1, K2, units, cost, spot, settlePrice, scrub = true, compact = false, initialScrub }: Props) {
   const H = compact ? 72 : 220;
   const padX = compact ? 2 : 12;
   const padTop = compact ? 6 : 28;
@@ -118,3 +118,6 @@ export function PayoffRamp({ asset, side, K1, K2, units, cost, spot, settlePrice
     </div>
   );
 }
+
+/** Memoised: re-renders only when its numbers change. */
+export const PayoffRamp = memo(PayoffRampImpl);

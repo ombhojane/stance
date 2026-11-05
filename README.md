@@ -16,7 +16,22 @@ cd app
 npm install
 npm run dev
 ```
-Open http://localhost:3000. All prices and positions are simulated in the browser (demo clock fixed at Nov 6, 2026). Contracts come next.
+Open http://localhost:3000. All prices and positions are simulated in the browser (demo clock fixed at Nov 6, 2026). ETH only. Contracts come next.
+
+### Install it on your phone (PWA)
+The production build is an installable, offline-capable app:
+```bash
+npm run build && npm run start
+```
+Open it on your phone over HTTPS (or on localhost), then **Share → Add to Home Screen** (iOS) or **Install app** (Android/Chrome). After the first visit every page, script, stylesheet and font is cached, so it opens instantly and works offline.
+
+### Performance notes
+- Fonts are self-hosted with `next/font` (preloaded, no request to Google, no layout shift).
+- Animation features (`motion` drag/layout) load lazily after first paint via `LazyMotion`; components use the lightweight `m.*`.
+- The ASCII hero canvas renders at most ~30fps and pauses when offscreen or the tab is hidden; simulated prices stop ticking in hidden tabs.
+- Hot components (`RollingNumber`, `PayoffRamp`) are memoised; toasts live in their own context so they don't re-render pages.
+- Illustrations go through `next/image` (AVIF/WebP, sized per slot, lazy).
+- Measured on a local production build: first contentful paint ≈ 0.46s, CLS ≈ 0.001.
 
 ### Screens
 | Route | What it is |

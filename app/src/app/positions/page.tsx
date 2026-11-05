@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import flag from "../../../public/art/flag.png";
 import { useState } from "react";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { ArrowRight, Plus } from "lucide-react";
 import { Position, markValue, useStore } from "@/lib/store";
 import { ASSETS, NOW, chanceAbove, expiryLabel, expiryTime, unitPayout, yearsUntil } from "@/lib/market";
@@ -60,8 +62,7 @@ export default function PositionsPage() {
 
       {list.length === 0 ? (
         <Tile className="mt-4 flex flex-col items-center gap-4 p-10 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/art/flag.png" alt="" className="art h-40 w-64 object-cover" />
+            <Image src={flag} alt="" sizes="256px" className="art h-40 w-64 object-cover" />
           <p className="text-mute">{tab === "live" ? "No stances yet." : "Nothing closed yet."}</p>
           <Link href="/make">
             <Button>
@@ -72,9 +73,9 @@ export default function PositionsPage() {
       ) : (
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {list.map((p, i) => (
-            <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+            <m.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
               <PositionCard p={p} spot={spots[p.asset]} />
-            </motion.div>
+            </m.div>
           ))}
         </div>
       )}

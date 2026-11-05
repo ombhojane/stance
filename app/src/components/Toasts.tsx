@@ -1,18 +1,20 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { X } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, useToasts } from "@/lib/store";
 
 const TONE = { up: "bg-up", down: "bg-down", odds: "bg-odds" } as const;
 
 export function Toasts() {
-  const { toasts, dismiss } = useStore();
+  const { dismiss } = useStore();
+  const toasts = useToasts();
   return (
     <div className="pointer-events-none fixed bottom-20 right-4 z-50 flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2 md:bottom-6">
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
-          <motion.div
+          <m.div
             key={t.id}
             layout
             initial={{ opacity: 0, y: 24, scale: 0.94 }}
@@ -28,7 +30,7 @@ export function Toasts() {
             <button onClick={() => dismiss(t.id)} className="opacity-50 hover:opacity-100" aria-label="Dismiss">
               <X size={14} />
             </button>
-          </motion.div>
+          </m.div>
         ))}
       </AnimatePresence>
     </div>

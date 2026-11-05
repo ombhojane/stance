@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
+import Image from "next/image";
+import telescope from "../../../public/art/telescope.png";
+import * as m from "motion/react-m";
 import { ArrowRight, Bot, Lock } from "lucide-react";
 import { Draft, draftToQuery, quote } from "@/lib/market";
 import { pct, price } from "@/lib/format";
@@ -27,18 +29,18 @@ const SIGNALS: Signal[] = [
     committed: "3h ago",
   },
   {
-    draft: { amount: 250, asset: "SOL", dir: "below", target: 125, expiry: "2026-12-25" },
+    draft: { amount: 250, asset: "ETH", dir: "below", target: 2300, expiry: "2026-12-25" },
     confidence: 0.38,
-    why: "Large token unlock on Dec 3, memecoin volume cooling, open interest rolling over.",
-    agent: "flows.signals.sol",
+    why: "Large unlocks across L2 tokens in December, staking outflows rising, open interest rolling over.",
+    agent: "flows.signals.eth",
     record: { calls: 18, hit: 0.56 },
     committed: "yesterday",
   },
   {
-    draft: { amount: 1000, asset: "BTC", dir: "above", target: 75000, expiry: "2027-03-26" },
-    confidence: 0.47,
-    why: "Miner selling exhausted, long-term holder supply at a record, halving-cycle seasonality.",
-    agent: "macro.signals.btc",
+    draft: { amount: 1000, asset: "ETH", dir: "above", target: 3500, expiry: "2027-03-26" },
+    confidence: 0.33,
+    why: "Glamsterdam upgrade on the roadmap, ETF holdings at a record, supply shrinking for 6 months.",
+    agent: "macro.signals.eth",
     record: { calls: 12, hit: 0.67 },
     committed: "2 days ago",
   },
@@ -65,8 +67,7 @@ export default function SignalsPage() {
           </h1>
           <p className="mt-2 text-mute">Agree with an agent? Back it, risk capped.</p>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/art/telescope.png" alt="" className="art -mb-4 hidden h-36 w-56 object-cover sm:block" />
+        <Image src={telescope} alt="" sizes="224px" className="art -mb-4 hidden h-36 w-56 object-cover sm:block" />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -74,7 +75,7 @@ export default function SignalsPage() {
           const q = quote(s.draft);
           const edge = s.confidence - q.chanceFull;
           return (
-            <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+            <m.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Tile className="flex h-full flex-col p-6">
                 <div className="flex items-center justify-between text-xs text-mute">
                   <span className="inline-flex items-center gap-2 font-mono">
@@ -125,7 +126,7 @@ export default function SignalsPage() {
                   </Link>
                 </div>
               </Tile>
-            </motion.div>
+            </m.div>
           );
         })}
       </div>

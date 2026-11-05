@@ -1,10 +1,14 @@
 "use client";
 
+import Image from "next/image";
+import scale from "../../../public/art/scale.png";
+
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { Layers, Scale, Wallet } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { ASSETS, ASSET_LIST, AssetId, EXPIRIES, FEE, expiryLabel, fairUp, roundTo, yearsUntil } from "@/lib/market";
+import { ASSETS, AssetId, EXPIRIES, FEE, expiryLabel, fairUp, roundTo, yearsUntil } from "@/lib/market";
 import { pct, price, usd } from "@/lib/format";
 import { AssetDot, Button, Chip, Segmented, SlideToConfirm, Stepper, Tile } from "@/components/controls";
 import { RollingNumber } from "@/components/RollingNumber";
@@ -28,7 +32,7 @@ function seriesFor(asset: AssetId): Series[] {
 
 export default function HousePage() {
   const { balance, vaults, dispatch, toast, hydrated } = useStore();
-  const [asset, setAsset] = useState<AssetId>("ETH");
+  const asset: AssetId = "ETH";
   const [expiry, setExpiry] = useState("2026-11-27");
   const [si, setSi] = useState(1);
   const [deposit, setDeposit] = useState(2000);
@@ -70,23 +74,15 @@ export default function HousePage() {
           </h1>
           <p className="mt-2 text-mute">Back both sides. Earn the spread.</p>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/art/scale.png" alt="" className="art -mb-4 hidden h-36 w-56 object-cover sm:block" />
+        <Image src={scale} alt="" sizes="224px" className="art -mb-4 hidden h-36 w-56 object-cover sm:block" />
       </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
         {/* ── Configure ── */}
         <Tile className="space-y-7 p-6">
           <div>
-            <Label n="1" t="Pick a market" />
+            <Label n="1" t="Pick a date" />
             <div className="flex flex-wrap gap-2">
-              {ASSET_LIST.map((x) => (
-                <Chip key={x.id} active={asset === x.id} onClick={() => setAsset(x.id)} className="inline-flex items-center gap-2">
-                  <AssetDot asset={x.id} size={18} /> {x.id}
-                </Chip>
-              ))}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
               {EXPIRIES.map((e) => (
                 <Chip key={e.id} active={expiry === e.id} onClick={() => setExpiry(e.id)}>
                   {e.label}
@@ -147,9 +143,9 @@ export default function HousePage() {
           </Tile>
 
           <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <SlideToConfirm key={`${canDeposit}-${vaults.length}`} label={canDeposit ? `Slide to deposit ${usd(deposit, { cents: false })}` : "Not enough demo USDC"} disabled={!canDeposit} onConfirm={confirm} />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
       </div>
@@ -245,7 +241,7 @@ function Inventory({ label, pct: p, tone, ask, fair }: { label: string; pct: num
         <span className="tnum font-semibold">{Math.round(p * 100)}%</span>
       </div>
       <div className="mt-2 h-3 overflow-hidden rounded-full bg-tile">
-        <motion.div className={`h-full rounded-full ${tone === "up" ? "bg-up" : "bg-down"}`} animate={{ width: `${p * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 24 }} />
+        <m.div className={`h-full rounded-full ${tone === "up" ? "bg-up" : "bg-down"}`} animate={{ width: `${p * 100}%` }} transition={{ type: "spring", stiffness: 200, damping: 24 }} />
       </div>
       <p className="mt-3 text-xs text-mute">
         next ask <span className="tnum text-base font-semibold text-ink">{usd(ask)}</span> <span className="text-faint">(fair {usd(fair)})</span>

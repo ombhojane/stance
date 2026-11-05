@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useTransform, animate } from "motion/react";
+import { useMotionValue, useTransform, animate } from "motion/react";
+import * as m from "motion/react-m";
 import { Minus, Plus, ChevronsRight, Check } from "lucide-react";
 import { RollingNumber } from "./RollingNumber";
 import { AssetId, ASSETS } from "@/lib/market";
@@ -49,7 +50,7 @@ export function Chip({ active, className = "", children, ...rest }: React.Button
 // ── Asset badge ─────────────────────────────────────────────────────────
 export function AssetDot({ asset, size = 22 }: { asset: AssetId; size?: number }) {
   const a = ASSETS[asset];
-  const glyph = { ETH: "Ξ", BTC: "₿", SOL: "◎" }[asset];
+  const glyph = { ETH: "Ξ" }[asset];
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-[#0a0a0b]"
@@ -214,11 +215,11 @@ export function SlideToConfirm({ label, onConfirm, disabled, tone = "up" }: { la
 
   return (
     <div ref={track} className={`relative h-16 w-full overflow-hidden rounded-full bg-tile-2 ${disabled ? "opacity-40" : ""}`}>
-      <motion.div className={`absolute inset-y-1 left-1 rounded-full ${bg} opacity-25`} style={{ width: fill }} />
-      <motion.span style={{ opacity: labelOpacity }} className="pointer-events-none absolute inset-0 flex items-center justify-center pl-10 text-sm font-semibold text-ink">
+      <m.div className={`absolute inset-y-1 left-1 rounded-full ${bg} opacity-25`} style={{ width: fill }} />
+      <m.span style={{ opacity: labelOpacity }} className="pointer-events-none absolute inset-0 flex items-center justify-center pl-10 text-sm font-semibold text-ink">
         {done ? "" : label}
-      </motion.span>
-      <motion.button
+      </m.span>
+      <m.button
         aria-label={label}
         disabled={disabled || done}
         drag={disabled || done ? false : "x"}
@@ -245,7 +246,7 @@ export function SlideToConfirm({ label, onConfirm, disabled, tone = "up" }: { la
         className={`absolute left-1 top-1 flex h-14 w-14 items-center justify-center rounded-full ${bg} text-on-accent shadow-lg active:cursor-grabbing`}
       >
         {done ? <Check size={22} strokeWidth={3} /> : <ChevronsRight size={22} strokeWidth={2.5} />}
-      </motion.button>
+      </m.button>
     </div>
   );
 }
@@ -283,7 +284,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
     <div className="inline-flex rounded-full bg-tile-2 p-1">
       {options.map((o) => (
         <button key={o.value} onClick={() => onChange(o.value)} className="relative rounded-full px-4 py-2 text-sm font-medium">
-          {value === o.value && <motion.span layoutId={`seg-${options.map((x) => x.value).join("")}`} className="absolute inset-0 rounded-full bg-tile-3" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+          {value === o.value && <m.span layoutId={`seg-${options.map((x) => x.value).join("")}`} className="absolute inset-0 rounded-full bg-tile-3" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
           <span className={`relative ${value === o.value ? "text-ink" : "text-mute"}`}>{o.label}</span>
         </button>
       ))}

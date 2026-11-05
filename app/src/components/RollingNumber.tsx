@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { usd, pct } from "@/lib/format";
 
 type Fmt = "usd" | "usd0" | "usdSigned" | "price" | "pct" | "int" | "x";
@@ -24,7 +26,7 @@ function render(value: number, format: Fmt): string {
 }
 
 /** Digit-by-digit rolling counter (bencho-style). */
-export function RollingNumber({ value, format = "usd", className = "" }: { value: number; format?: Fmt; className?: string }) {
+function RollingNumberImpl({ value, format = "usd", className = "" }: { value: number; format?: Fmt; className?: string }) {
   const text = render(value, format);
   const chars = text.split("");
   return (
@@ -61,3 +63,6 @@ export function RollingNumber({ value, format = "usd", className = "" }: { value
     </span>
   );
 }
+
+/** Memoised: re-renders only when its numbers change. */
+export const RollingNumber = memo(RollingNumberImpl);

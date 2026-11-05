@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { useStore } from "@/lib/store";
 import { RollingNumber } from "./RollingNumber";
 import { Logo } from "./Logo";
@@ -30,7 +30,7 @@ export function Nav() {
           <nav className="hidden items-center gap-1 rounded-full bg-tile p-1 ring-1 ring-line md:flex">
             {LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="relative rounded-full px-4 py-2 text-sm font-medium">
-                {isActive(l.href) && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-tile-3" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+                {isActive(l.href) && <m.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-tile-3" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
                 <span className={`relative ${isActive(l.href) ? "text-ink" : "text-mute hover:text-ink"}`}>{l.label}</span>
               </Link>
             ))}
