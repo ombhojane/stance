@@ -1,0 +1,212 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Theme tokens ─────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg: #f3f1ea;
+  --tile: #ffffff;
+  --tile-2: #f1efe8;
+  --tile-3: #e5e2d8;
+  --line: #e2dfd5;
+  --ink: #111113;
+  --mute: #6d6b72;
+  --faint: #a8a5ac;
+  --accent: #c6f24e;
+  --on-accent: #0a0a0b;
+  --up: #4a7d00;
+  --up-deep: #ebf6cf;
+  --down: #d4432f;
+  --down-deep: #fbe4df;
+  --odds: #6a4ee0;
+  --odds-deep: #ece7ff;
+  --sun: #c98a00;
+  --grain: rgba(0, 0, 0, 0.5);
+  --hero-bg: #e6f5bd;
+  --hero-ink: #1f3300;
+  --hero-win: #3f7a00;
+  --hero-lose: #4d5a3a;
+  --art-blend: multiply;
+  --art-filter: none;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --tile: #151517;
+  --tile-2: #1d1d20;
+  --tile-3: #26262a;
+  --line: #26262a;
+  --ink: #f4f3ef;
+  --mute: #8b8a91;
+  --faint: #55545b;
+  --accent: #c8f560;
+  --on-accent: #0a0a0b;
+  --up: #c8f560;
+  --up-deep: #2a3a0c;
+  --down: #ff8a7a;
+  --down-deep: #3d1712;
+  --odds: #b9a6ff;
+  --odds-deep: #231b44;
+  --sun: #ffd66b;
+  --grain: rgba(255, 255, 255, 0.6);
+  --hero-bg: #10140a;
+  --hero-ink: #8d9a78;
+  --hero-win: #c8f560;
+  --hero-lose: #5b6550;
+  --art-blend: screen;
+  --art-filter: invert(0.93);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-tile: var(--tile);
+  --color-tile-2: var(--tile-2);
+  --color-tile-3: var(--tile-3);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-up: var(--up);
+  --color-up-deep: var(--up-deep);
+  --color-down: var(--down);
+  --color-down-deep: var(--down-deep);
+  --color-odds: var(--odds);
+  --color-odds-deep: var(--odds-deep);
+  --color-sun: var(--sun);
+  --color-hero: var(--hero-bg);
+
+  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-tile: 28px;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.045;
+  background-image: radial-gradient(var(--grain) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+}
+
+.dots {
+  background-image: radial-gradient(color-mix(in oklab, var(--ink) 10%, transparent) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+/* dithered illustrations: black-on-white art that adapts to the theme */
+.art {
+  filter: var(--art-filter);
+  image-rendering: pixelated;
+}
+
+.slot {
+  position: relative;
+  border-bottom: 2px dotted currentColor;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+  border-radius: 10px 10px 2px 2px;
+  padding: 0 0.12em;
+}
+
+.slot:hover {
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+}
+
+.slot[data-active="true"] {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  border-bottom-style: solid;
+}
+
+.ticket-edge {
+  --r: 10px;
+  mask:
+    radial-gradient(circle var(--r) at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--r) at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+}
+
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--up) 50%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--up);
+  animation: pulse-dot 1.6s ease-out infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  animation: marquee 40s linear infinite;
+}
+
+input[type="range"] {
+  accent-color: var(--up);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
