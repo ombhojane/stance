@@ -44,6 +44,12 @@ contract Deploy is Script {
         uint256 pk = _envKey();
         address me = pk != 0 ? vm.addr(pk) : msg.sender; // keystore: --account/--sender
         deployer = me;
+
+        // Safety: this script only ever touches Base Sepolia, and only from the expected wallet.
+        require(block.chainid == 84532, "Deploy: Base Sepolia (84532) only");
+        address expected = vm.envOr("DEPLOYER_ADDRESS", address(0));
+        require(expected != address(0), "Deploy: set DEPLOYER_ADDRESS in contracts/.env");
+        require(me == expected, "Deploy: signer is not DEPLOYER_ADDRESS");
         address forwarder = vm.envOr("CRE_FORWARDER", address(0));
         uint256 seed = vm.envOr("SEED_PER_VAULT", uint256(25_000e6));
 
