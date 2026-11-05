@@ -154,3 +154,37 @@ export function useUsd() {
 
 export const toUsd6 = (usd: number) => BigInt(Math.round(usd * USD6));
 export const fromUsd6 = (x: bigint) => Number(x) / USD6;
+
+/** Onchain view of a stance placed through the app: sell-back quote and settlement. */
+export function useLivePosition(p?: { side: "UP" | "DOWN"; live?: { series: string; outcome: string; unitsRaw: string } }) {
+  const { ranges } = useRanges();
+  const range = p?.live ? ranges.find((r) => r.series.toLowerCase() === p.live!.series.toLowerCase()) : undefined;
+  const strategy = range ? (p!.side === "UP" ? range.up : range.down) : undefined;
+  const units = p?.live ? BigInt(p.live.unitsRaw) : 0n;
+
+  const sellQ = useReadContract({
+    address: DEPLOYMENT.app as Address,
+    abi: spreadAquaAppAbi,
+    functionName: "quoteSell",
+    args: strategy ? [strategy, units] : undefined,
+    query: { enabled: LIVE && !!strategy && units > 0n, refetchInterval: 20_000, retry: false },
+  });
+  const settle = useReadContracts({
+    contracts: range
+      ? ([
+          { address: range.series, abi: spreadSeriesAbi, functionName: "settled" },
+          { address: range.series, abi: spreadSeriesAbi, functionName: "settlePrice" },
+        ] as const)
+      : [],
+    query: { enabled: LIVE && !!range, refetchInterval: 30_000 },
+  });
+  const [s0, s1] = settle.data ?? [];
+  return {
+    range,
+    strategy,
+    units,
+    bid: sellQ.data ? fromUsd6(sellQ.data[0]) : undefined,
+    settled: s0?.status === "success" ? (s0.result as boolean) : false,
+    settlePrice: s1?.status === "success" ? Number(s1.result) / PX8 : undefined,
+  };
+}

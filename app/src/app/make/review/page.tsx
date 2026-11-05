@@ -4,13 +4,20 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
-import { draftFromQuery, draftToQuery, expiryLabel, quote, FEE, ASSETS } from "@/lib/market";
+import { draftFromQuery, draftToQuery, expiryLabel, FEE } from "@/lib/market";
 import { useStore } from "@/lib/store";
 import { price, usd } from "@/lib/format";
 import { SlideToConfirm } from "@/components/controls";
 import { PayoffRamp } from "@/components/PayoffRamp";
 import { OddsGrid } from "@/components/OddsGrid";
 import { SentenceText } from "@/components/SentenceText";
+import { useAccount } from "wagmi";
+import { parseEventLogs } from "viem";
+import { useStanceQuote } from "@/lib/chain/useStanceQuote";
+import { useUsd } from "@/lib/chain/live";
+import { useStanceTx } from "@/lib/chain/tx";
+import { spreadAquaAppAbi } from "@/lib/chain/abis";
+import { EXPLORER } from "@/lib/chain/deployment";
 
 export default function ReviewPage() {
   return (
@@ -25,14 +32,30 @@ function Review() {
   const router = useRouter();
   const { balance, dispatch, toast } = useStore();
   const draft = useMemo(() => draftFromQuery(params), [params]);
-  const q = useMemo(() => quote(draft), [draft]);
+  const q = useStanceQuote(draft);
+  const { isConnected } = useAccount();
+  const usdc = useUsd();
+  const tx = useStanceTx();
   const [ack, setAck] = useState(false);
   const [details, setDetails] = useState(false);
-  const enough = balance >= q.cost;
+  const wallet = q.live ? usdc.balance ?? 0 : balance;
+  const enough = wallet >= q.cost;
   const loseAt = draft.dir === "above" ? q.K1 : q.K2;
 
-  const confirm = () => {
+  const confirm = async () => {
     const id = `p-${Date.now().toString(36)}`;
+    let live: { series: string; outcome: string; unitsRaw: string; txHash: string } | undefined;
+    let units = q.units;
+    let cost = q.cost;
+    if (q.live) {
+      const receipt = await tx.takeStance(q.strategy!, q.usdcIn!, q.minUnits!);
+      if (!receipt) return; // error shown below the slider
+      const [ev] = parseEventLogs({ abi: spreadAquaAppAbi, logs: receipt.logs, eventName: "Bought" });
+      units = Number(ev.args.unitsOut) / 1e18;
+      cost = Number(ev.args.usdcIn) / 1e6;
+      live = { series: q.range!.series, outcome: q.outcome!, unitsRaw: ev.args.unitsOut.toString(), txHash: receipt.transactionHash };
+      usdc.refetch();
+    }
     dispatch({
       type: "buy",
       position: {
@@ -46,10 +69,11 @@ function Review() {
         expiry: draft.expiry,
         K1: q.K1,
         K2: q.K2,
-        units: q.units,
-        cost: q.cost,
+        units,
+        cost,
         chanceAtBuy: q.chanceFull,
         status: "open",
+        live,
       },
     });
     toast({ title: "Stance placed", tone: "up" });
@@ -82,7 +106,7 @@ function Review() {
       <section className="mt-10">
         <h2 className="text-sm font-medium text-mute">What you get at each price</h2>
         <div className="mt-4">
-          <PayoffRamp asset={draft.asset} side={q.side} K1={q.K1} K2={q.K2} units={q.units} cost={q.cost} spot={ASSETS[draft.asset].spot} expiry={draft.expiry} />
+          <PayoffRamp asset={draft.asset} side={q.side} K1={q.K1} K2={q.K2} units={q.units} cost={q.cost} spot={q.spot} expiry={draft.expiry} />
         </div>
       </section>
 
@@ -112,7 +136,38 @@ function Review() {
             If {draft.asset} is {draft.dir === "above" ? "at or below" : "at or above"} {price(loseAt)} on {expiryLabel(draft.expiry)}, I lose the <span className="text-ink">{usd(q.cost)}</span> I paid.
           </span>
         </label>
-        <SlideToConfirm key={String(ack && enough)} label={enough ? `Slide to pay ${usd(q.cost)}` : "Not enough demo USDC"} disabled={!ack || !enough || !q.ok} onConfirm={confirm} />
+        {q.live && !isConnected ? (
+          <p className="rounded-2xl bg-tile px-4 py-4 text-center text-sm text-mute">Connect a wallet (top right) to take this stance on Base Sepolia.</p>
+        ) : (
+          <SlideToConfirm
+            key={`${ack}-${enough}-${tx.step}`}
+            label={
+              tx.step === "approving"
+                ? "Approving test USD…"
+                : tx.step === "confirming"
+                  ? "Confirming onchain…"
+                  : tx.step === "switching"
+                    ? "Switching to Base Sepolia…"
+                    : enough
+                      ? `Slide to pay ${usd(q.cost)}`
+                      : q.live
+                        ? "Not enough test USD (get some from the wallet menu)"
+                        : "Not enough demo USDC"
+            }
+            disabled={!ack || !enough || !q.ok || tx.busy}
+            onConfirm={confirm}
+          />
+        )}
+        {tx.error && <p className="text-center text-sm text-down">{tx.error}</p>}
+        {q.live && (
+          <p className="text-center font-mono text-[11px] text-faint">
+            base sepolia ·{" "}
+            <a className="underline" href={`${EXPLORER}/address/${q.range?.vault}`} target="_blank" rel="noreferrer">
+              house vault
+            </a>{" "}
+            · priced by 1inch aqua
+          </p>
+        )}
       </div>
     </div>
   );

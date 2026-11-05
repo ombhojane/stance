@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, Coins, Flag, Info, TriangleAlert } from "lucide-react";
 import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
 import { useLiveSpot } from "@/lib/store";
+import { snapTarget, useStanceQuote } from "@/lib/chain/useStanceQuote";
 import { pct, price, usd } from "@/lib/format";
 import { AsciiCone } from "./AsciiCone";
 import { Chip, OddsRing, Stepper, TickSlider } from "./controls";
@@ -21,10 +22,17 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   const draft = external ?? internal;
   const setDraft = (d: Draft) => (onDraft ? onDraft(d) : setInternal(d));
   const [open, setOpen] = useState<Field>(null);
-  const live = useLiveSpot(draft.asset);
-  const q = useMemo(() => quote(draft), [draft]);
+  const demoSpot = useLiveSpot(draft.asset);
+  const q = useStanceQuote(draft, demoSpot);
+  const live = q.spot; // Chainlink ETH/USD when live, simulated in demo
   const a = ASSETS[draft.asset];
+  const snap = (v: number) => snapTarget(v, q.targets);
   const bar = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (q.live && q.targets.length && !q.targets.includes(draft.target)) setDraft({ ...draft, target: snapTarget(draft.target, q.targets) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.live, q.targets, draft.target]);
 
   useEffect(() => {
     if (syncUrl) router.replace(`/make?${draftToQuery(draft)}`, { scroll: false });
@@ -44,18 +52,18 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const setDir = (dir: Direction) => {
     if (dir === draft.dir) return;
-    const mirrored = roundTo(2 * a.spot - draft.target, a.grid);
-    const ok = dir === "above" ? mirrored > a.spot : mirrored < a.spot && mirrored > a.grid;
-    set({ dir, target: ok ? mirrored : roundTo(a.spot * (dir === "above" ? 1.12 : 0.88), a.grid) });
+    const mirrored = roundTo(2 * live - draft.target, a.grid);
+    const ok = dir === "above" ? mirrored > live : mirrored < live && mirrored > a.grid;
+    set({ dir, target: ok ? mirrored : roundTo(live * (dir === "above" ? 1.12 : 0.88), a.grid) });
   };
-  const move = ((draft.target - a.spot) / a.spot) * 100;
+  const move = ((draft.target - live) / live) * 100;
   const toggle = (f: Field) => setOpen((o) => (o === f ? null : f));
 
   return (
     <section className="relative">
       {/* ── Visual ── */}
       <div className="relative h-[560px] overflow-hidden rounded-[36px] bg-hero ring-1 ring-line/60 sm:h-[660px]">
-        <AsciiCone asset={draft.asset} dir={draft.dir} target={draft.target} expiry={draft.expiry} spot={live} chance={q.chanceFull} onTarget={(v) => set({ target: v })} />
+        <AsciiCone asset={draft.asset} dir={draft.dir} target={draft.target} expiry={draft.expiry} spot={live} chance={q.chanceFull} onTarget={(v) => set({ target: snap(v) })} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center px-4 pt-9 text-center sm:pt-12">
           <span className="tnum rounded-full bg-tile/80 px-3 py-1.5 font-mono text-[11px] text-mute backdrop-blur">
             ETH <span className="text-ink">{price(Math.round(live))}</span>
@@ -153,16 +161,19 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                       </div>
                       <TickSlider
                         value={draft.target}
-                        onChange={(v) => set({ target: v })}
-                        min={Math.max(a.grid, roundTo(a.spot * 0.6, a.grid))}
-                        max={roundTo(a.spot * 1.6, a.grid)}
+                        onChange={(v) => set({ target: snap(v) })}
+                        min={Math.max(a.grid, roundTo(live * 0.6, a.grid))}
+                        max={roundTo(live * 1.6, a.grid)}
                         step={a.grid}
-                        marker={{ value: a.spot, label: "now" }}
+                        marker={{ value: live, label: "now" }}
                         tone={draft.dir === "above" ? "up" : "down"}
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {(draft.dir === "above" ? [5, 10, 20, 35] : [-5, -10, -20, -35]).map((p) => {
-                          const v = roundTo(a.spot * (1 + p / 100), a.grid);
+                        {(q.targets.length
+                          ? q.targets.map((v) => Math.round(((v - live) / live) * 100))
+                          : draft.dir === "above" ? [5, 10, 20, 35] : [-5, -10, -20, -35]
+                        ).map((p, i) => {
+                          const v = q.targets.length ? q.targets[i] : roundTo(live * (1 + p / 100), a.grid);
                           return (
                             <Chip key={p} active={draft.target === v} onClick={() => set({ target: v })}>
                               {p > 0 ? "+" : ""}
@@ -176,7 +187,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                   {open === "date" && (
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {EXPIRIES.map((e) => {
-                        const alt = quote({ ...draft, expiry: e.id });
+                        const alt = quote({ ...draft, expiry: e.id }, live);
                         const on = draft.expiry === e.id;
                         return (
                           <button
@@ -208,7 +219,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
               className={`mx-auto mt-3 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm ${q.nudge.tone === "warn" ? "bg-down-deep text-down" : "bg-odds-deep text-odds"}`}
             >
               {q.nudge.tone === "warn" ? <TriangleAlert size={15} /> : <Info size={15} />}
-              {q.nudge.tone === "warn" ? "Already there. Pick a target further away." : q.nudge.text.split(".")[0] + "."}
+              {q.nudge.tone === "warn" && !q.live ? "Already there. Pick a target further away." : q.nudge.text.split(".")[0] + "."}
             </m.p>
           )}
         </AnimatePresence>

@@ -10,12 +10,27 @@ import { Button, SlideToConfirm } from "@/components/controls";
 import { PayoffRamp } from "@/components/PayoffRamp";
 import { RollingNumber } from "@/components/RollingNumber";
 import { SentenceText } from "@/components/SentenceText";
+import { useEffect } from "react";
+import { parseEventLogs } from "viem";
+import { useChainlinkSpot, useLivePosition, toUsd6 } from "@/lib/chain/live";
+import { useStanceTx } from "@/lib/chain/tx";
+import { spreadAquaAppAbi, spreadSeriesAbi } from "@/lib/chain/abis";
+import { EXPLORER } from "@/lib/chain/deployment";
 
 export function PositionView() {
   const { id } = useParams<{ id: string }>();
   const { positions, hydrated, dispatch, toast } = useStore();
   const p = positions.find((x) => x.id === id);
-  const spot = useLiveSpot(p?.asset ?? "ETH");
+  const demoSpot = useLiveSpot(p?.asset ?? "ETH");
+  const chainSpot = useChainlinkSpot();
+  const spot = p?.live && chainSpot ? chainSpot : demoSpot;
+  const lp = useLivePosition(p);
+  const tx = useStanceTx();
+
+  // a live stance settles onchain (Chainlink via CRE): mirror that into the local record
+  useEffect(() => {
+    if (p?.live && p.status === "open" && lp.settled && lp.settlePrice) dispatch({ type: "settle", id: p.id, price: lp.settlePrice });
+  }, [p, lp.settled, lp.settlePrice, dispatch]);
 
   if (!hydrated) return null;
   if (!p)
@@ -31,12 +46,19 @@ export function PositionView() {
   const settled = p.status === "settled";
   const collect = settled ? unitPayout(p.side, p.settlePrice!, p.K1, p.K2) * p.units : 0;
   const value = settled ? collect : open ? markValue(p, spot) : p.proceeds ?? 0;
-  const bid = sellBackValue(p, spot);
+  const bid = p.live ? lp.bid ?? sellBackValue(p, spot) : sellBackValue(p, spot);
   const chanceNow = p.side === "UP" ? chanceAbove(spot, p.K2, a.vol, t) : 1 - chanceAbove(spot, p.K1, a.vol, t);
 
-  const sell = () => {
-    dispatch({ type: "sell", id: p.id, proceeds: bid });
-    toast({ title: `Sold back for ${usd(bid)}`, tone: "up" });
+  const sell = async () => {
+    let proceeds = bid;
+    if (p.live) {
+      const r = await tx.sellBack(lp.strategy!, p.live.outcome as `0x${string}`, lp.units, toUsd6(bid * 0.99));
+      if (!r) return;
+      const [ev] = parseEventLogs({ abi: spreadAquaAppAbi, logs: r.logs, eventName: "Sold" });
+      proceeds = Number(ev.args.usdcOut) / 1e6;
+    }
+    dispatch({ type: "sell", id: p.id, proceeds });
+    toast({ title: `Sold back for ${usd(proceeds)}`, tone: "up" });
   };
   const settleNow = () => {
     const sd = a.vol * Math.sqrt(t);
@@ -45,9 +67,18 @@ export function PositionView() {
     dispatch({ type: "settle", id: p.id, price: s });
     toast({ title: `${p.asset} settled at ${price(s)}`, tone: "odds" });
   };
-  const redeem = () => {
-    dispatch({ type: "redeem", id: p.id, proceeds: collect });
-    toast({ title: collect > 0 ? `Collected ${usd(collect)}` : "Closed", tone: collect > 0 ? "up" : "down" });
+  const redeem = async () => {
+    let paid = collect;
+    if (p.live) {
+      const up = p.side === "UP" ? lp.units : 0n;
+      const down = p.side === "DOWN" ? lp.units : 0n;
+      const r = await tx.redeem(p.live.series as `0x${string}`, up, down);
+      if (!r) return;
+      const [ev] = parseEventLogs({ abi: spreadSeriesAbi, logs: r.logs, eventName: "Redeemed" });
+      paid = Number(ev.args.paid) / 1e6;
+    }
+    dispatch({ type: "redeem", id: p.id, proceeds: paid });
+    toast({ title: paid > 0 ? `Collected ${usd(paid)}` : "Closed", tone: paid > 0 ? "up" : "down" });
   };
 
   return (
@@ -89,10 +120,22 @@ export function PositionView() {
 
       {open && (
         <div className="mt-10 space-y-4">
-          <SlideToConfirm label={`Slide to sell back for ${usd(bid)}`} onConfirm={sell} />
+          <SlideToConfirm
+            key={tx.step}
+            label={tx.busy ? (tx.step === "approving" ? "Approving…" : "Confirming onchain…") : `Slide to sell back for ${usd(bid)}`}
+            disabled={tx.busy || (!!p.live && !lp.strategy)}
+            onConfirm={sell}
+          />
+          {tx.error && <p className="text-center text-sm text-down">{tx.error}</p>}
+          {p.live ? (
+            <a href={`${EXPLORER}/tx/${p.live.txHash}`} target="_blank" rel="noreferrer" className="block text-center font-mono text-xs text-faint hover:text-ink">
+              placed onchain · view transaction
+            </a>
+          ) : (
           <button onClick={settleNow} className="w-full text-center font-mono text-xs text-faint transition hover:text-ink">
             demo: jump to {expiryLabel(p.expiry)} and settle
           </button>
+          )}
         </div>
       )}
 
@@ -112,7 +155,8 @@ export function PositionView() {
               <dd className="text-ink">{expiryLabel(p.expiry)} 08:00 utc</dd>
             </div>
           </dl>
-          <Button size="lg" className="w-full" onClick={redeem}>
+          {tx.error && <p className="text-center text-sm text-down">{tx.error}</p>}
+          <Button size="lg" className="w-full" onClick={redeem} disabled={tx.busy}>
             {collect > 0 ? `Collect ${usd(collect)}` : "Close"}
           </Button>
         </div>

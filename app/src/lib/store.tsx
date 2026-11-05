@@ -25,6 +25,13 @@ export interface Position {
   status: PositionStatus;
   settlePrice?: number;
   proceeds?: number;
+  /** Set when the stance was placed onchain (Base Sepolia). */
+  live?: {
+    series: string;
+    outcome: string;
+    unitsRaw: string; // 18dp, exact
+    txHash: string;
+  };
 }
 
 export interface Vault {
