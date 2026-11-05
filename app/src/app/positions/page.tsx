@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { LIVE } from "@/lib/chain/deployment";
 import flag from "../../../public/art/flag.png";
 import { useState } from "react";
 import * as m from "motion/react-m";
@@ -16,7 +17,9 @@ import { SentenceTextClassic as SentenceText } from "@/components/SentenceTextCl
 import { useSpots } from "@/components/useSpots";
 
 export default function PositionsPage() {
-  const { positions, hydrated } = useStore();
+  const { positions: all, hydrated } = useStore();
+  // live mode: only stances actually placed onchain (the demo examples stay in demo mode)
+  const positions = LIVE ? all.filter((p) => p.live) : all;
   const spots = useSpots();
   const [tab, setTab] = useState<"live" | "done">("live");
 
