@@ -12,6 +12,10 @@ import { ASSETS, AssetId, EXPIRIES, FEE, expiryLabel, fairUp, roundTo, yearsUnti
 import { pct, price, usd } from "@/lib/format";
 import { AssetDot, Button, Chip, Segmented, SlideToConfirm, Stepper, Tile } from "@/components/controls";
 import { RollingNumber } from "@/components/RollingNumber";
+import { useAccount } from "wagmi";
+import { LIVE } from "@/lib/chain/deployment";
+import { toUsd6, useChainlinkSpot, useHouseVaults, useRanges, useUsd } from "@/lib/chain/live";
+import { useStanceTx } from "@/lib/chain/tx";
 
 interface Series {
   K1: number;
@@ -32,6 +36,12 @@ function seriesFor(asset: AssetId): Series[] {
 
 export default function HousePage() {
   const { balance, vaults, dispatch, toast, hydrated } = useStore();
+  const { isConnected } = useAccount();
+  const { ranges } = useRanges();
+  const chainSpot = useChainlinkSpot();
+  const usdc = useUsd();
+  const house = useHouseVaults(ranges);
+  const tx = useStanceTx();
   const asset: AssetId = "ETH";
   const [expiry, setExpiry] = useState("2026-11-27");
   const [si, setSi] = useState(1);
@@ -39,11 +49,16 @@ export default function HousePage() {
   const [flow, setFlow] = useState(35); // % of UP inventory bought by takers (simulation)
 
   const a = ASSETS[asset];
-  const list = seriesFor(asset);
-  const s = list[Math.min(si, list.length - 1)];
+  const spot = LIVE && chainSpot ? chainSpot : a.spot;
+  // live: the deployed ranges for this date; demand is estimated from distance to spot
+  const liveForDate = LIVE ? ranges.filter((r) => r.expiryId === expiry && !r.settled) : [];
+  const list: (Series & { vault?: `0x${string}` })[] = LIVE
+    ? liveForDate.map((r) => ({ K1: r.k1, K2: r.k2, vault: r.vault, demand: Math.max(0.15, 0.7 - Math.abs((r.k1 + r.k2) / 2 - spot) / spot * 3) }))
+    : seriesFor(asset);
+  const s = list[Math.min(si, Math.max(0, list.length - 1))] ?? seriesFor(asset)[0];
   const W = s.K2 - s.K1;
   const t = yearsUntil(expiry);
-  const fu = fairUp(a.spot, s.K1, s.K2, a.vol, t);
+  const fu = fairUp(spot, s.K1, s.K2, a.vol, t);
   const pUp = fu / W;
   const weeks = Math.max(1, t * 52);
   const sets = deposit / W;
@@ -59,8 +74,17 @@ export default function HousePage() {
   const askUp = fu * (1 + FEE) * (1 + k * (1 - invUp));
   const askDown = (W - fu) * (1 + FEE) * (1 - k * 0.5 * (1 - invUp));
 
-  const canDeposit = hydrated && deposit <= balance && deposit > 0;
-  const confirm = () => {
+  const wallet = LIVE ? usdc.balance ?? 0 : balance;
+  const canDeposit = hydrated && deposit <= wallet && deposit > 0 && (!LIVE || (isConnected && !!s.vault)) && !tx.busy;
+  const confirm = async () => {
+    if (LIVE) {
+      const r = await tx.deposit(s.vault!, toUsd6(deposit));
+      if (!r) return;
+      usdc.refetch();
+      house.refetch();
+      toast({ title: "Deposited to the house", body: `Backing UP and DOWN on 1inch Aqua`, tone: "up" });
+      return;
+    }
     dispatch({ type: "deposit", vault: { id: `v-${Date.now().toString(36)}`, asset, K1: s.K1, K2: s.K2, expiry, deposit, createdAt: Date.now() } });
     toast({ title: "Shipped to 1inch Aqua", body: `${sets.toFixed(2)} sets backing UP and DOWN`, tone: "up" });
   };
@@ -144,7 +168,20 @@ export default function HousePage() {
 
           <AnimatePresence>
             <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <SlideToConfirm key={`${canDeposit}-${vaults.length}`} label={canDeposit ? `Slide to deposit ${usd(deposit, { cents: false })}` : "Not enough demo USDC"} disabled={!canDeposit} onConfirm={confirm} />
+              <SlideToConfirm key={`${canDeposit}-${vaults.length}-${house.mine.length}-${tx.step}`} label={
+                  tx.busy
+                    ? tx.step === "approving"
+                      ? "Approving test USD…"
+                      : "Confirming onchain…"
+                    : LIVE && !isConnected
+                      ? "Connect a wallet to deposit"
+                      : canDeposit
+                        ? `Slide to deposit ${usd(deposit, { cents: false })}`
+                        : LIVE
+                          ? "Not enough test USD"
+                          : "Not enough demo USDC"
+                } disabled={!canDeposit} onConfirm={confirm} />
+              {tx.error && <p className="mt-2 text-center text-sm text-down">{tx.error}</p>}
             </m.div>
           </AnimatePresence>
         </div>
@@ -176,7 +213,41 @@ export default function HousePage() {
         <h2 className="flex items-center gap-2 text-xl font-semibold">
           <Layers size={18} className="text-mute" /> Your vaults
         </h2>
-        {vaults.length === 0 ? (
+        {LIVE ? (
+          house.mine.length === 0 ? (
+            <Tile className="mt-3 flex items-center gap-3 p-6 text-sm text-mute">
+              <Wallet size={18} /> No vaults yet. Deposit above to start earning the spread.
+            </Tile>
+          ) : (
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {house.mine.map(({ range: r, shares, value }) => (
+                <Tile key={r.vault} className="flex items-center justify-between gap-4 p-5">
+                  <div>
+                    <p className="flex items-center gap-2 font-semibold">
+                      <AssetDot asset="ETH" size={20} /> {price(r.k1)} → {price(r.k2)}
+                    </p>
+                    <p className="mt-1 text-xs text-mute">
+                      worth {usd(value)} · {r.settled ? "settled" : `until ${expiryLabel(r.expiryId)}`}
+                    </p>
+                  </div>
+                  <Button
+                    variant="soft"
+                    disabled={!r.settled || tx.busy}
+                    onClick={async () => {
+                      const res = await tx.withdraw(r.vault, shares);
+                      if (!res) return;
+                      usdc.refetch();
+                      house.refetch();
+                      toast({ title: "Withdrawn from the house", tone: "odds" });
+                    }}
+                  >
+                    {r.settled ? "Withdraw" : `Unlocks ${expiryLabel(r.expiryId)}`}
+                  </Button>
+                </Tile>
+              ))}
+            </div>
+          )
+        ) : vaults.length === 0 ? (
           <Tile className="mt-3 flex items-center gap-3 p-6 text-sm text-mute">
             <Wallet size={18} /> No vaults yet. Deposit above to start earning the spread.
           </Tile>

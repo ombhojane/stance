@@ -188,3 +188,30 @@ export function useLivePosition(p?: { side: "UP" | "DOWN"; live?: { series: stri
     settlePrice: s1?.status === "success" ? Number(s1.result) / PX8 : undefined,
   };
 }
+
+/** The connected wallet's house positions: shares and current value in every vault. */
+export function useHouseVaults(ranges: LiveRange[]) {
+  const { address } = useAccount();
+  const q = useReadContracts({
+    allowFailure: true,
+    contracts: address
+      ? ranges.flatMap((r) => [
+          { address: r.vault, abi: writerVaultAbi, functionName: "balanceOf", args: [address] } as const,
+          { address: r.vault, abi: writerVaultAbi, functionName: "totalSupply" } as const,
+          { address: r.vault, abi: writerVaultAbi, functionName: "totalAssets" } as const,
+        ])
+      : [],
+    query: { enabled: LIVE && !!address && ranges.length > 0, refetchInterval: 30_000 },
+  });
+  const mine = ranges
+    .map((r, i) => {
+      const d = q.data;
+      const get = (k: number) => (d?.[i * 3 + k]?.status === "success" ? (d[i * 3 + k].result as bigint) : 0n);
+      const shares = get(0);
+      const supply = get(1);
+      const assets = get(2);
+      return { range: r, shares, value: supply > 0n ? fromUsd6((shares * assets) / supply) : 0 };
+    })
+    .filter((v) => v.shares > 0n);
+  return { mine, refetch: q.refetch };
+}
