@@ -217,9 +217,6 @@ export function SlideToConfirm({ label, onConfirm, disabled, tone = "up" }: { la
       <motion.div className={`absolute inset-y-1 left-1 rounded-full ${bg} opacity-25`} style={{ width: fill }} />
       <motion.span style={{ opacity: labelOpacity }} className="pointer-events-none absolute inset-0 flex items-center justify-center pl-10 text-sm font-semibold text-ink">
         {done ? "" : label}
-        <span className="ml-2 inline-flex text-mute">
-          <ChevronsRight size={16} className="animate-pulse" />
-        </span>
       </motion.span>
       <motion.button
         aria-label={label}

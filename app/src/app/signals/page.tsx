@@ -6,7 +6,7 @@ import { ArrowRight, Bot, Lock } from "lucide-react";
 import { Draft, draftToQuery, quote } from "@/lib/market";
 import { pct, price } from "@/lib/format";
 import { AssetDot, Button, OddsRing, Tile } from "@/components/controls";
-import { SentenceText } from "@/components/SentenceText";
+import { SentenceTextClassic as SentenceText } from "@/components/SentenceTextClassic";
 
 interface Signal {
   draft: Draft;

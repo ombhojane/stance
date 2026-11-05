@@ -19,14 +19,13 @@ export function Toasts() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-line bg-tile-2/95 p-3.5 shadow-2xl backdrop-blur-xl"
+            className="pointer-events-auto flex items-start gap-3 rounded-2xl bg-ink px-4 py-3 text-bg shadow-xl"
           >
-            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE[t.tone ?? "up"]}`} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{t.title}</p>
+              <p className="text-sm font-medium">{t.title}</p>
               {t.body && <p className="mt-0.5 text-xs text-mute">{t.body}</p>}
             </div>
-            <button onClick={() => dismiss(t.id)} className="text-mute hover:text-ink" aria-label="Dismiss">
+            <button onClick={() => dismiss(t.id)} className="opacity-50 hover:opacity-100" aria-label="Dismiss">
               <X size={14} />
             </button>
           </motion.div>

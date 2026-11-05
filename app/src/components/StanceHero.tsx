@@ -71,9 +71,9 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
             ))}
           </span>
           <h1 className="mt-5 text-[clamp(2.4rem,6.2vw,5rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-            Don&rsquo;t just call it.
+            Trade what you think
             <br />
-            <span className="serif font-normal">Take a stance.</span>
+            <span className="serif font-normal">happens next.</span>
           </h1>
         </div>
         <span className="pointer-events-none absolute bottom-[132px] left-6 hidden font-mono text-[11px] text-mute sm:block">↕ drag the flag</span>

@@ -181,6 +181,10 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     };
 
     const frame = (now: number) => {
+      if (w < 1 || h < 1) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const p = props.current;
       const L = buildBase();
       ctx.setTransform(1, 0, 0, 1, 0, 0);

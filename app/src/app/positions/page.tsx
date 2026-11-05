@@ -8,9 +8,9 @@ import { Position, markValue, useStore } from "@/lib/store";
 import { ASSETS, NOW, chanceAbove, expiryLabel, expiryTime, unitPayout, yearsUntil } from "@/lib/market";
 import { countdown, pct, price, usd } from "@/lib/format";
 import { AssetDot, Button, Segmented, Tile } from "@/components/controls";
-import { PayoffRamp } from "@/components/PayoffRamp";
+import { PayoffRampClassic as PayoffRamp } from "@/components/PayoffRampClassic";
 import { RollingNumber } from "@/components/RollingNumber";
-import { SentenceText } from "@/components/SentenceText";
+import { SentenceTextClassic as SentenceText } from "@/components/SentenceTextClassic";
 import { useSpots } from "@/components/useSpots";
 
 export default function PositionsPage() {

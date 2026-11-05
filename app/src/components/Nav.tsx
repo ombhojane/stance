@@ -38,11 +38,8 @@ export function Nav() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <span className="flex items-center gap-2 rounded-full bg-tile py-1 pl-3 pr-1 text-sm ring-1 ring-line">
-              <span className="live-dot" />
-              <span className="rounded-full bg-tile-3 px-3 py-1 font-semibold">
-                {hydrated ? <RollingNumber value={balance} format="usd0" /> : "…"}
-              </span>
+            <span className="tnum rounded-full bg-tile px-4 py-2 text-sm font-semibold ring-1 ring-line">
+              {hydrated ? <RollingNumber value={balance} format="usd0" /> : "…"}
             </span>
           </div>
         </div>

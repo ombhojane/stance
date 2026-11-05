@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="grain min-h-dvh" suppressHydrationWarning>
+      <body className="min-h-dvh" suppressHydrationWarning>
         {/* sets data-theme before first paint */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <StoreProvider>
