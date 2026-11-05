@@ -1,0 +1,8 @@
+*.env
+.env
+node_modules/
+dist/
+*.wasm
+.cre_build_tmp.js
+# locally downloaded CRE CLI binary
+.bin/

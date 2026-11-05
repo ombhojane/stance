@@ -1,0 +1,20 @@
+# ==========================================================================
+# CRE PROJECT SETTINGS FILE  (Stance)
+# ==========================================================================
+# Shared settings for every workflow in this project, per CLI target.
+# Format: https://docs.chain.link/cre/reference/project-configuration-ts
+#
+# Base Sepolia chain name (used here and in the workflow config) comes from
+# https://docs.chain.link/cre/guides/workflow/using-evm-client/forwarder-directory-ts
+
+# ==========================================================================
+staging-settings:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: https://sepolia.base.org
+
+# ==========================================================================
+production-settings:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: https://sepolia.base.org

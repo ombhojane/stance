@@ -1,0 +1,20 @@
+{
+  "schedule": "0 */10 * * * *",
+  "chainSelectorName": "ethereum-testnet-sepolia-base-1",
+  "isTestnet": true,
+  "marketAddress": "0xF0b865ebf18815C4f0B6f96D0356EB0E799c4BF7",
+  "receiverAddress": "0x616C1D81570feb237cA7Dd148732929ED1787B94",
+  "feedAddress": "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1",
+  "multicallAddress": "0xcA11bde05977b3631167028862bE2a173976CA11",
+  "gasLimit": "5000000",
+  "blockConfidence": "latest",
+  "maxRoundsBack": 2000,
+  "callsPerRead": 16,
+  "maxEvmReads": 15,
+  "maxExpiriesPerRun": 5,
+  "maxSeriesPerRun": 16,
+  "spotApiUrl": "https://api.coinbase.com/v2/prices/ETH-USD/spot",
+  "candlesApiUrl": "https://api.exchange.coinbase.com/products/ETH-USD/candles",
+  "maxDeviationBps": 200,
+  "requireReference": true
+}

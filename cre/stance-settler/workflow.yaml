@@ -1,0 +1,23 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE  (stance-settler)
+# ==========================================================================
+# Per-target workflow settings; these override project.yaml values.
+# deployment-registry is omitted, so deploys go to the default onchain registry.
+
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "stance-settler-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    secrets-path: ""
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "stance-settler-production"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""
