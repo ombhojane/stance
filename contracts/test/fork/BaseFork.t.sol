@@ -69,3 +69,29 @@ contract BaseForkTest is Test {
         assertLt(back, 250e6);
     }
 }
+
+import {UniswapV3TwapGuard, IUniswapV3PoolOracle} from "../../src/UniswapV3TwapGuard.sol";
+
+/// @notice The settlement guard against Base's real WETH/USDC 0.05% Uniswap v3 pool.
+contract BaseForkGuardTest is Test {
+    IUniswapV3PoolOracle constant POOL = IUniswapV3PoolOracle(0xd0b53D9277642d899DF5C87A3966A349A798F224);
+    address constant WETH = 0x4200000000000000000000000000000000000006;
+    IAggregatorV3 constant ETH_USD = IAggregatorV3(0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70);
+
+    function setUp() public {
+        if (block.chainid != 8453) vm.skip(true);
+    }
+
+    function test_twapAgreesWithChainlink_andRejectsOutliers() public {
+        UniswapV3TwapGuard guard = new UniswapV3TwapGuard(POOL, WETH, 30 minutes, 150, 18, 6, true);
+        (, int256 px,,,) = ETH_USD.latestRoundData();
+        uint256 chainlink = uint256(px);
+        uint256 twap = guard.twapPrice();
+        console2.log("chainlink / 30m TWAP (8dp)", chainlink, twap);
+
+        (bool ok,) = guard.check(chainlink);
+        assertTrue(ok, "Chainlink and the Uniswap TWAP should agree within 1.5%");
+        (bool bad,) = guard.check(chainlink * 110 / 100);
+        assertFalse(bad, "a 10% off print must be refused");
+    }
+}

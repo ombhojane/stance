@@ -17,6 +17,7 @@ interface IUniswapV3PoolOracle {
 /// @notice Second opinion for settlement: the time-weighted ETH/USD price from a Uniswap v3
 ///         WETH/USDC pool. Settlement is refused if Chainlink and the TWAP disagree by more
 ///         than `toleranceBps`, so a single bad print can't settle a range.
+///         With `enforce` off (testnets, where pools are thin and mispriced) it only reports.
 contract UniswapV3TwapGuard is ISettlementGuard {
     IUniswapV3PoolOracle public immutable pool;
     uint32 public immutable window;
@@ -24,6 +25,7 @@ contract UniswapV3TwapGuard is ISettlementGuard {
     bool public immutable wethIsToken0;
     uint8 public immutable wethDecimals;
     uint8 public immutable usdcDecimals;
+    bool public immutable enforce;
 
     int256 internal constant LN_1_0001 = 99_995_000_333_308; // ln(1.0001) in WAD
 
@@ -33,7 +35,8 @@ contract UniswapV3TwapGuard is ISettlementGuard {
         uint32 window_,
         uint256 toleranceBps_,
         uint8 wethDecimals_,
-        uint8 usdcDecimals_
+        uint8 usdcDecimals_,
+        bool enforce_
     ) {
         pool = pool_;
         window = window_;
@@ -41,6 +44,7 @@ contract UniswapV3TwapGuard is ISettlementGuard {
         wethIsToken0 = pool_.token0() == weth;
         wethDecimals = wethDecimals_;
         usdcDecimals = usdcDecimals_;
+        enforce = enforce_;
     }
 
     /// @notice ETH price in USD with 8 decimals, averaged over `window` seconds.
@@ -65,6 +69,6 @@ contract UniswapV3TwapGuard is ISettlementGuard {
     function check(uint256 price) external view returns (bool ok, uint256 guardPrice) {
         guardPrice = twapPrice();
         uint256 diff = price > guardPrice ? price - guardPrice : guardPrice - price;
-        ok = diff * 10_000 <= guardPrice * toleranceBps;
+        ok = !enforce || diff * 10_000 <= guardPrice * toleranceBps;
     }
 }
