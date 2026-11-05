@@ -8,6 +8,7 @@ import { themeInitScript } from "@/components/Theme";
 import { MotionProvider } from "@/components/MotionProvider";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { PrefetchRoutes } from "@/components/PrefetchRoutes";
+import { Web3Provider } from "@/components/Web3Provider";
 
 // Self-hosted at build time: no render-blocking request to Google, no layout shift.
 const sans = Inter_Tight({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter-tight", display: "swap" });
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* sets data-theme before first paint */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <MotionProvider>
+          <Web3Provider>
           <StoreProvider>
             <div className="relative z-10">
               <Nav />
@@ -46,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <Toasts />
           </StoreProvider>
+          </Web3Provider>
         </MotionProvider>
         <ServiceWorker />
         <PrefetchRoutes />

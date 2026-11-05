@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as m from "motion/react-m";
-import { useStore } from "@/lib/store";
-import { RollingNumber } from "./RollingNumber";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./Theme";
+import { WalletPill } from "./WalletPill";
 
 const LINKS = [
   { href: "/make", label: "Take a stance", short: "Stance" },
@@ -17,7 +16,6 @@ const LINKS = [
 
 export function Nav() {
   const path = usePathname();
-  const { balance, hydrated } = useStore();
   const isActive = (href: string) => path === href || path.startsWith(href + "/");
   return (
     <>
@@ -38,9 +36,7 @@ export function Nav() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <span className="tnum rounded-full bg-tile px-4 py-2 text-sm font-semibold ring-1 ring-line">
-              {hydrated ? <RollingNumber value={balance} format="usd0" /> : "…"}
-            </span>
+            <WalletPill />
           </div>
         </div>
       </header>
