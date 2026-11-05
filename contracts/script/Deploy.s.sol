@@ -41,7 +41,7 @@ contract Deploy is Script {
     address deployer;
 
     function run() external {
-        uint256 pk = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
+        uint256 pk = _envKey();
         address me = pk != 0 ? vm.addr(pk) : msg.sender; // keystore: --account/--sender
         deployer = me;
         address forwarder = vm.envOr("CRE_FORWARDER", address(0));
@@ -107,6 +107,15 @@ contract Deploy is Script {
         market.register(series, vault);
         tusd.approve(address(vault), seed);
         vault.deposit(seed, deployer);
+    }
+
+    /// @dev Reads DEPLOYER_PRIVATE_KEY with or without the 0x prefix; empty means "use --account".
+    function _envKey() internal view returns (uint256) {
+        string memory raw = vm.envOr("DEPLOYER_PRIVATE_KEY", string(""));
+        bytes memory b = bytes(raw);
+        if (b.length == 0) return 0;
+        if (b.length >= 2 && b[0] == "0" && (b[1] == "x" || b[1] == "X")) return vm.parseUint(raw);
+        return vm.parseUint(string.concat("0x", raw));
     }
 
     function _round100(uint256 x) internal pure returns (uint256) {
