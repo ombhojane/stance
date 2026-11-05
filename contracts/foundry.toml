@@ -9,7 +9,7 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 1000000
 via_ir = true
-fs_permissions = [{ access = "read", path = "./" }]
+fs_permissions = [{ access = "read", path = "./" }, { access = "read-write", path = "./deployments" }]
 remappings = [
   "@1inch/aqua/=lib/aqua/",
   "@1inch/solidity-utils/=lib/solidity-utils/",
