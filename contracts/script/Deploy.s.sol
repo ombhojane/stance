@@ -21,8 +21,10 @@ import {ISettlementGuard} from "../src/interfaces/ISettlementGuard.sol";
 ///   official Aqua code (AquaRouter) → SpreadAquaApp → Uniswap TWAP guard (monitor-only)
 ///   → registry + CRE receiver → test USD → 8 ranges × 4 dates, each seeded by a house vault.
 ///
-///   forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast
-///   env: DEPLOYER_PRIVATE_KEY (required), CRE_FORWARDER (optional), SEED_PER_VAULT (optional, 6dp)
+///   With an encrypted Foundry keystore (recommended):
+///     forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --account stance --sender <address>
+///   Or with a raw key in contracts/.env: DEPLOYER_PRIVATE_KEY=0x...
+///   optional env: CRE_FORWARDER, SEED_PER_VAULT (6dp)
 contract Deploy is Script {
     using stdJson for string;
 
@@ -39,8 +41,8 @@ contract Deploy is Script {
     address deployer;
 
     function run() external {
-        uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address me = vm.addr(pk);
+        uint256 pk = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
+        address me = pk != 0 ? vm.addr(pk) : msg.sender; // keystore: --account/--sender
         deployer = me;
         address forwarder = vm.envOr("CRE_FORWARDER", address(0));
         uint256 seed = vm.envOr("SEED_PER_VAULT", uint256(25_000e6));
@@ -49,7 +51,8 @@ contract Deploy is Script {
         uint256 atm = (uint256(px) + 50e8) / 100e8 * 100e8; // nearest $100, 8dp
         console2.log("ETH/USD", uint256(px), "atm", atm);
 
-        vm.startBroadcast(pk);
+        if (pk != 0) vm.startBroadcast(pk);
+        else vm.startBroadcast(me);
         TestUSD tusd = new TestUSD(me);
         IAqua aqua = IAqua(address(new AquaRouter(me)));
         SpreadAquaApp app = new SpreadAquaApp(aqua, ETH_USD, VOL, me);
