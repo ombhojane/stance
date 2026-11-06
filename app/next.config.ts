@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // self-contained server bundle for the Cloud Run container
+  output: "standalone",
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"] },
   experimental: {
