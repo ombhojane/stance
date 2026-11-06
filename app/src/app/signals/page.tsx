@@ -8,6 +8,9 @@ import { ArrowRight, Bot, Lock } from "lucide-react";
 import { Draft, draftToQuery, quote } from "@/lib/market";
 import { pct, price } from "@/lib/format";
 import { AssetDot, Button, OddsRing, Tile } from "@/components/controls";
+import { useDesk } from "@/lib/useDesk";
+import { DeskChip } from "@/components/DeskChip";
+import { EXPIRIES } from "@/lib/market";
 import { SentenceTextClassic as SentenceText } from "@/components/SentenceTextClassic";
 
 interface Signal {
@@ -54,6 +57,36 @@ const SIGNALS: Signal[] = [
   },
 ];
 
+function DeskCard() {
+  const desk = useDesk();
+  if (!desk || desk.source === "static") return null;
+  return (
+    <m.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+      <Tile className="mt-8 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 font-mono text-xs text-mute">
+            <Bot size={14} className="text-odds" /> the desk · live read
+          </span>
+          <DeskChip desk={desk} expiry={EXPIRIES[0].id} />
+        </div>
+        <p className="mt-3 text-lg font-semibold tracking-tight">{desk.headline}</p>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-mute">{desk.read}</p>
+        <div className="tnum mt-4 flex flex-wrap gap-2 font-mono text-[11px]">
+          {EXPIRIES.map((e) => (
+            <span key={e.id} className="rounded-full bg-tile-2 px-3 py-1.5 ring-1 ring-line">
+              <span className="text-faint">{e.label}</span> <span className="text-ink">{Math.round((desk.vols[e.id] ?? 0) * 100)}% vol</span>
+            </span>
+          ))}
+          <span className="rounded-full bg-tile-2 px-3 py-1.5 ring-1 ring-line">
+            <span className="text-faint">bias</span>{" "}
+            <span className={desk.bias === "up" ? "text-up" : desk.bias === "down" ? "text-down" : "text-ink"}>{desk.bias}</span>
+          </span>
+        </div>
+      </Tile>
+    </m.div>
+  );
+}
+
 export default function SignalsPage() {
   return (
     <div className="pt-4 sm:pt-8">
@@ -70,7 +103,9 @@ export default function SignalsPage() {
         <Image src={telescope} alt="" sizes="224px" className="art -mb-4 hidden h-36 w-56 object-cover sm:block" />
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <DeskCard />
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         {SIGNALS.map((s, i) => {
           const q = quote(s.draft);
           const edge = s.confidence - q.chanceFull;

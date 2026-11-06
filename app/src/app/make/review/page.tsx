@@ -6,10 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { draftFromQuery, draftToQuery, expiryLabel, FEE } from "@/lib/market";
 import { useStore } from "@/lib/store";
-import { price, usd } from "@/lib/format";
+import { price, usd, pct } from "@/lib/format";
 import { SlideToConfirm } from "@/components/controls";
 import { PayoffRamp } from "@/components/PayoffRamp";
 import { OddsGrid } from "@/components/OddsGrid";
+import { deskChance, useDesk } from "@/lib/useDesk";
+import { DeskChip } from "@/components/DeskChip";
 import { SentenceText } from "@/components/SentenceText";
 import { useAccount } from "wagmi";
 import { parseEventLogs } from "viem";
@@ -33,6 +35,8 @@ function Review() {
   const { balance, dispatch, toast } = useStore();
   const draft = useMemo(() => draftFromQuery(params), [params]);
   const q = useStanceQuote(draft);
+  const desk = useDesk();
+  const dc = deskChance(desk, draft, q.spot, q.K1, q.K2);
   const { isConnected } = useAccount();
   const usdc = useUsd();
   const tx = useStanceTx();
@@ -100,6 +104,13 @@ function Review() {
         <h2 className="text-sm font-medium text-mute">The odds, as the market sees them</h2>
         <div className="mt-4">
           <OddsGrid full={q.chanceFull} any={q.chanceAny} />
+          {desk && desk.source !== "static" && (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-mute">
+              Desk read: <span className="text-ink">{desk.headline}</span>
+              {dc != null && <span className="tnum font-mono text-xs">· {pct(dc)} vs textbook {pct(q.chanceFull)}</span>}
+              <DeskChip desk={desk} expiry={draft.expiry} textbook={q.chanceFull} deskC={dc} />
+            </p>
+          )}
         </div>
       </section>
 

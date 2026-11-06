@@ -8,6 +8,8 @@ import { ArrowRight, ChevronDown, TriangleAlert } from "lucide-react";
 import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
 import { useLiveSpot } from "@/lib/store";
 import { snapTarget, useStanceQuote } from "@/lib/chain/useStanceQuote";
+import { deskChance, useDesk } from "@/lib/useDesk";
+import { DeskChip } from "./DeskChip";
 import { pct, usd } from "@/lib/format";
 import { AsciiCone } from "./AsciiCone";
 import { Chip, TickSlider } from "./controls";
@@ -24,6 +26,8 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   const [open, setOpen] = useState<Field>(null);
   const demoSpot = useLiveSpot(draft.asset);
   const q = useStanceQuote(draft, demoSpot);
+  const desk = useDesk();
+  const dc = deskChance(desk, draft, q.spot, q.K1, q.K2);
   const live = q.spot; // Chainlink ETH/USD when live, simulated in demo
   const a = ASSETS[draft.asset];
   const snap = (v: number) => snapTarget(v, q.targets);
@@ -227,7 +231,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                 <RollingNumber value={q.cost} format="usd" />
               </span>
               <span className="mx-2 text-faint">·</span>
-              <span className="text-odds">{pct(q.chanceFull)}</span> chance
+              <span className="text-odds">{pct(dc ?? q.chanceFull)}</span> chance <DeskChip desk={desk} expiry={draft.expiry} textbook={q.chanceFull} deskC={dc} />
             </p>
             <button
               ref={cta}

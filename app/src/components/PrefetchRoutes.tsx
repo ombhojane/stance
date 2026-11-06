@@ -23,6 +23,7 @@ export function PrefetchRoutes() {
   useEffect(() => {
     let cancelled = false;
     idle(async () => {
+      fetch("/api/desk").catch(() => {}); // warm the desk read so odds receipts are instant
       for (const r of ROUTES) {
         if (cancelled) return;
         if (process.env.NODE_ENV === "production") router.prefetch(r);
