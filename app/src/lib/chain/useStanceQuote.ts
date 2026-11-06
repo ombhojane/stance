@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ASSETS, Draft, Quote, chanceAbove, quote as demoQuote, yearsUntil } from "@/lib/market";
-import { LIVE } from "./deployment";
+import { useLive } from "../mode";
 import { LiveRange, Strategy, pickRange, targetsFor, toUsd6, useChainlinkSpot, useRanges, useStrategyPrices } from "./live";
 
 export interface StanceQuote extends Quote {
@@ -23,6 +23,7 @@ export interface StanceQuote extends Quote {
  * Demo: the static model in market.ts.
  */
 export function useStanceQuote(draft: Draft, demoSpot?: number): StanceQuote {
+  const LIVE = useLive();
   const { ranges, isLoading } = useRanges();
   const chainSpot = useChainlinkSpot();
   const spot = LIVE && chainSpot ? chainSpot : demoSpot ?? ASSETS[draft.asset].spot;
@@ -80,7 +81,7 @@ export function useStanceQuote(draft: Draft, demoSpot?: number): StanceQuote {
       targets,
       loading: false,
     };
-  }, [draft, spot, range, strategy, prices, targets, isLoading]);
+  }, [draft, spot, range, strategy, prices, targets, isLoading, LIVE]);
 }
 
 /** Snap a target to the nearest pickable one (live), or return it unchanged (demo). */

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmi";
-import { LIVE } from "@/lib/chain/deployment";
+import { useLive } from "@/lib/mode";
 import { useUsd } from "@/lib/chain/live";
 import { useStanceTx } from "@/lib/chain/tx";
 import { useStore } from "@/lib/store";
@@ -12,16 +12,40 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /** Demo mode: the simulated wallet. Live mode: connect, test-USD balance, faucet. */
 export function WalletPill() {
+  const LIVE = useLive();
   if (!LIVE) return <DemoPill />;
   return <LivePill />;
 }
 
 function DemoPill() {
-  const { balance, hydrated } = useStore();
+  const { balance, hydrated, dispatch } = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   return (
-    <span className="tnum rounded-full bg-tile px-4 py-2 text-sm font-semibold ring-1 ring-line">
-      {hydrated ? <RollingNumber value={balance} format="usd0" /> : "…"}
-    </span>
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} className="tnum rounded-full bg-tile px-4 py-2 text-sm font-semibold ring-1 ring-line">
+        {hydrated ? <RollingNumber value={balance} format="usd0" /> : "…"}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl bg-tile p-1.5 text-sm shadow-[0_20px_50px_-20px_rgba(0,0,0,.5)] ring-1 ring-line">
+          <p className="px-3 py-2 text-xs text-mute">Test money. Nothing on chain.</p>
+          <button
+            onClick={() => {
+              dispatch({ type: "reset" });
+              setOpen(false);
+            }}
+            className="w-full rounded-xl px-3 py-2 text-left font-medium hover:bg-tile-2"
+          >
+            Reset to $10,000
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

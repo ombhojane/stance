@@ -6,6 +6,8 @@ import * as m from "motion/react-m";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./Theme";
 import { WalletPill } from "./WalletPill";
+import { useMode, Mode } from "@/lib/mode";
+import { DEPLOYED } from "@/lib/chain/deployment";
 
 const LINKS = [
   { href: "/make", label: "Take a stance", short: "Stance" },
@@ -35,6 +37,7 @@ export function Nav() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <ModeSwitch />
             <ThemeToggle />
             <WalletPill />
           </div>
@@ -50,5 +53,27 @@ export function Nav() {
         ))}
       </nav>
     </>
+  );
+}
+
+/** test: simulated money, every screen works offline. prod: the live Base Sepolia contracts. */
+function ModeSwitch() {
+  const { mode, setMode } = useMode();
+  if (!DEPLOYED) return null;
+  return (
+    <div role="radiogroup" aria-label="Mode" className="flex rounded-full bg-tile p-0.5 text-xs font-semibold ring-1 ring-line">
+      {(["test", "prod"] as Mode[]).map((v) => (
+        <button
+          key={v}
+          role="radio"
+          aria-checked={mode === v}
+          onClick={() => setMode(v)}
+          className={`relative rounded-full px-2.5 py-1.5 capitalize transition sm:px-3 ${mode === v ? "text-ink" : "text-faint hover:text-mute"}`}
+        >
+          {mode === v && <m.span layoutId="mode-pill" className={`absolute inset-0 rounded-full ${v === "test" ? "bg-sun/20" : "bg-tile-3"}`} transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+          <span className="relative">{v}</span>
+        </button>
+      ))}
+    </div>
   );
 }

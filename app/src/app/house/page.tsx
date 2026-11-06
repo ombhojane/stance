@@ -13,7 +13,7 @@ import { pct, price, usd } from "@/lib/format";
 import { AssetDot, Button, Chip, Segmented, SlideToConfirm, Stepper, Tile } from "@/components/controls";
 import { RollingNumber } from "@/components/RollingNumber";
 import { useAccount } from "wagmi";
-import { LIVE } from "@/lib/chain/deployment";
+import { useLive } from "@/lib/mode";
 import { toUsd6, useChainlinkSpot, useHouseVaults, useRanges, useUsd } from "@/lib/chain/live";
 import { useStanceTx } from "@/lib/chain/tx";
 
@@ -35,6 +35,7 @@ function seriesFor(asset: AssetId): Series[] {
 }
 
 export default function HousePage() {
+  const LIVE = useLive();
   const { balance, vaults, dispatch, toast, hydrated } = useStore();
   const { isConnected } = useAccount();
   const { ranges } = useRanges();

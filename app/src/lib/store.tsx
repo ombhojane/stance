@@ -141,8 +141,11 @@ function reducer(s: State, a: Action): State {
       return { ...s, balance: s.balance - a.vault.deposit, vaults: [a.vault, ...s.vaults] };
     case "withdraw":
       return { ...s, balance: s.balance + a.amount, vaults: s.vaults.filter((v) => v.id !== a.id) };
-    case "reset":
-      return { ...seed(), hydrated: true };
+    case "reset": {
+      // test-money reset: never drop the records of real onchain stances
+      const fresh = seed();
+      return { ...fresh, positions: [...s.positions.filter((p) => p.live), ...fresh.positions], hydrated: true };
+    }
   }
 }
 

@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import type { Address, Hex } from "viem";
-import { DEPLOYMENT, LIVE } from "./deployment";
+import { DEPLOYMENT } from "./deployment";
+import { useLive } from "../mode";
 import { aggregatorV3Abi, spreadAquaAppAbi, spreadSeriesAbi, stanceMarketAbi, testUsdAbi, writerVaultAbi } from "./abis";
 import type { Direction } from "@/lib/market";
 
@@ -41,6 +42,7 @@ export const expiryIdOf = (unix: number) => new Date(unix * 1000).toISOString().
 
 /** Every deployed range plus its live Aqua strategies, in one multicall. */
 export function useRanges() {
+  const LIVE = useLive();
   const market = DEPLOYMENT.market as Address;
   const all = useReadContract({
     address: market,
@@ -91,6 +93,7 @@ export function useRanges() {
 
 /** Chainlink ETH/USD from the same feed the contracts price and settle with. */
 export function useChainlinkSpot() {
+  const LIVE = useLive();
   const q = useReadContract({
     address: DEPLOYMENT.feed,
     abi: aggregatorV3Abi,
@@ -119,6 +122,7 @@ export function targetsFor(ranges: LiveRange[], expiryId: string, dir: Direction
 
 /** Onchain ask/bid/fair for a strategy, in USD per unit. */
 export function useStrategyPrices(strategy?: Strategy) {
+  const LIVE = useLive();
   const q = useReadContract({
     address: DEPLOYMENT.app as Address,
     abi: spreadAquaAppAbi,
@@ -131,6 +135,7 @@ export function useStrategyPrices(strategy?: Strategy) {
 
 /** Test-USD balance and allowance to the Aqua app for the connected wallet. */
 export function useUsd() {
+  const LIVE = useLive();
   const { address } = useAccount();
   const usd = DEPLOYMENT.usd as Address;
   const q = useReadContracts({
@@ -157,6 +162,7 @@ export const fromUsd6 = (x: bigint) => Number(x) / USD6;
 
 /** Onchain view of a stance placed through the app: sell-back quote and settlement. */
 export function useLivePosition(p?: { side: "UP" | "DOWN"; live?: { series: string; outcome: string; unitsRaw: string } }) {
+  const LIVE = useLive();
   const { ranges } = useRanges();
   const range = p?.live ? ranges.find((r) => r.series.toLowerCase() === p.live!.series.toLowerCase()) : undefined;
   const strategy = range ? (p!.side === "UP" ? range.up : range.down) : undefined;
@@ -191,6 +197,7 @@ export function useLivePosition(p?: { side: "UP" | "DOWN"; live?: { series: stri
 
 /** The connected wallet's house positions: shares and current value in every vault. */
 export function useHouseVaults(ranges: LiveRange[]) {
+  const LIVE = useLive();
   const { address } = useAccount();
   const q = useReadContracts({
     allowFailure: true,

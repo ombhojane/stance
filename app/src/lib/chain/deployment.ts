@@ -16,6 +16,7 @@ export const DEPLOYMENT = {
   deployBlock: 54946541n,
 };
 
-export const LIVE = DEPLOYMENT.market !== "";
+/** Contracts exist for this build; whether the app uses them is the prod/test switch (lib/mode.tsx). */
+export const DEPLOYED = DEPLOYMENT.market !== "";
 
 export const EXPLORER = "https://sepolia.basescan.org";
