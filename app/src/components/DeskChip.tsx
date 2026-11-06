@@ -60,7 +60,9 @@ export function DeskChip({ desk, expiry, textbook, deskC }: { desk: DeskClientRe
             {zg && (
               <>
                 <span className="text-faint">tee</span>
-                <span className={desk.teeVerified ? "text-up" : "text-mute"}>{desk.teeVerified ? "verified ✓" : "attested route"}</span>
+                <span className={desk.teeVerified ? "text-up" : desk.teeVerified === false ? "text-down" : "text-mute"}>
+                  {desk.teeVerified ? "signature verified ✓" : desk.teeVerified === false ? "signature invalid" : "verifying…"}
+                </span>
                 <span className="text-faint">provider</span>
                 <span className="text-ink">{short(desk.provider)}</span>
               </>
@@ -73,7 +75,7 @@ export function DeskChip({ desk, expiry, textbook, deskC }: { desk: DeskClientRe
             </span>
           </span>
           <span className="mt-3 block border-t border-line pt-2 text-[10px] leading-relaxed text-faint">
-            {zg ? "Priced by inference on 0G Compute. The request id is the receipt: this exact output, from this TEE provider." : "Priced by a fallback model; 0G receipt unavailable."}
+            {zg ? "Priced by 0G's own model running sealed in a TEE. We check the enclave's signature on this exact output against the provider registered on 0G Chain." : "Priced by a fallback model; 0G receipt unavailable."}
           </span>
         </span>
       )}

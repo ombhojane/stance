@@ -9,9 +9,11 @@
     "desk:eval": "node scripts/desk-eval.mjs"
   },
   "dependencies": {
+    "@0gfoundation/0g-compute-ts-sdk": "^0.9.0",
     "@tanstack/react-query": "^5.106.1",
     "@walletconnect/ethereum-provider": "^2.26.0",
     "clsx": "^2.1.1",
+    "ethers": "^6.17.0",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.0",
     "next": "16.1.3",

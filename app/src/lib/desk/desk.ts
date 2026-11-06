@@ -7,6 +7,7 @@
 import { EXPIRIES, yearsUntil, ASSETS } from "@/lib/market";
 import { gatherContext, MarketContext } from "./context";
 import { backends, complete } from "./llm";
+import { verifyTee } from "./verify";
 
 export interface DeskRead {
   headline: string; // one plain sentence for the UI
@@ -20,6 +21,7 @@ export interface DeskRead {
   requestId: string | null;
   provider: string | null;
   teeVerified: boolean | null;
+  chatId: string | null;
   latencyMs: number;
   at: number;
   context: MarketContext | null;
@@ -39,7 +41,8 @@ Reply with STRICT JSON, no prose outside JSON:
  "read": "2 short plain sentences: what ETH has been doing, and what that means for the odds; use one or two concrete numbers",
  "bias": "up"|"down"|"neutral",
  "confidence": 0.0-1.0,
- "vols": {<one entry per expiry id, annualized decimal>}}`;
+ "vols": ${JSON.stringify(Object.fromEntries(EXPIRIES.map((e) => [e.id, 0.5])))}}
+In "vols" keep exactly those keys and replace each 0.5 with your annualized vol as a decimal (0.55 means 55%).`;
 
 function userPrompt(ctx: MarketContext): string {
   const exp = EXPIRIES.map((e) => `${e.id} (${e.sub}, T=${yearsUntil(e.id, Date.now()).toFixed(3)}y)`).join(", ");
@@ -61,12 +64,20 @@ function userPrompt(ctx: MarketContext): string {
   });
 }
 
+function toVol(x: unknown): number {
+  const n = typeof x === "string" ? parseFloat(x.replace("%", "")) : Number(x);
+  if (!Number.isFinite(n)) return NaN;
+  return n > 3 ? n / 100 : n; // "55" or "55%" means 0.55
+}
+
 function clampVols(raw: unknown): Record<string, number> | null {
   if (typeof raw !== "object" || raw === null) return null;
+  const arr = Array.isArray(raw) ? raw : null;
+  const obj = raw as Record<string, unknown>;
   const out: Record<string, number> = {};
   let prev: number | null = null;
-  for (const e of EXPIRIES) {
-    const v = Number((raw as Record<string, unknown>)[e.id]);
+  for (const [i, e] of EXPIRIES.entries()) {
+    const v = toVol(arr ? arr[i] : obj[e.id] ?? obj[e.label] ?? obj[e.sub]);
     if (!Number.isFinite(v)) return null;
     let c = Math.min(1.6, Math.max(0.25, v));
     // smooth curve: neighbouring expiries may differ by at most 6 vol points
@@ -90,6 +101,7 @@ function staticRead(ctx: MarketContext | null): DeskRead {
     requestId: null,
     provider: null,
     teeVerified: null,
+    chatId: null,
     latencyMs: 0,
     at: Date.now(),
     context: ctx,
@@ -103,7 +115,7 @@ async function compute(): Promise<DeskRead> {
       const r = await complete(SYSTEM, userPrompt(ctx), b);
       const parsed = JSON.parse(r.text);
       const vols = clampVols(parsed.vols);
-      if (!vols) throw new Error("bad vols");
+      if (!vols) throw new Error(`bad vols: ${JSON.stringify(parsed.vols)?.slice(0, 160)}`);
       const read: DeskRead = {
         headline: String(parsed.headline ?? "").slice(0, 120) || "Desk read",
         read: String(parsed.read ?? "").slice(0, 400),
@@ -115,10 +127,16 @@ async function compute(): Promise<DeskRead> {
         requestId: r.requestId,
         provider: r.provider,
         teeVerified: r.teeVerified,
+        chatId: r.chatId,
         latencyMs: r.latencyMs,
         at: Date.now(),
         context: ctx,
       };
+      if (read.source === "0g" && read.provider && read.chatId && read.teeVerified === null) {
+        verifyTee(read.provider, read.chatId).then((ok) => {
+          if (ok !== null) read.teeVerified = ok;
+        });
+      }
       history.push({ at: read.at, spot: ctx.spot, vol1w: vols[EXPIRIES[0].id] ?? null });
       if (history.length > HISTORY_MAX) history.shift();
       return read;

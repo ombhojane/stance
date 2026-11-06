@@ -16,7 +16,8 @@ export function useDesk() {
       return r.json();
     },
     staleTime: 60_000,
-    refetchInterval: 120_000,
+    // poll quickly until the background TEE check lands, then settle down
+    refetchInterval: (q) => (q.state.data?.source === "0g" && q.state.data.teeVerified == null ? 8_000 : 120_000),
     retry: 1,
   });
   return q.data;

@@ -10,11 +10,13 @@ export interface LlmResult {
   requestId: string | null; // x_0g_trace.request_id on 0G
   provider: string | null; // TEE provider address on 0G
   teeVerified: boolean | null; // only when verify_tee was honored
+  chatId: string | null; // ZG-Res-Key: the id the TEE signature is bound to
   latencyMs: number;
 }
 
-const ZG_URL = process.env.ZG_ROUTER_URL || "https://router-api-testnet.integratenetwork.work/v1";
-const ZG_MODEL = process.env.ZG_MODEL || "glm-5.2";
+const ZG_URL = process.env.ZG_ROUTER_URL || "https://router-api.0g.ai/v1";
+// 0G's own model, TeeML (runs inside an Intel TDX enclave), 3B active params: fast and cheap
+const ZG_MODEL = process.env.ZG_MODEL || "0gm-1.0-35b-a3b";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 
 export function backends(): ("zg" | "openai")[] {
@@ -38,7 +40,8 @@ async function post(url: string, key: string, body: object, timeoutMs: number) {
       signal: ctl.signal,
     });
     if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
-    return await r.json();
+    const json = await r.json();
+    return { ...json, _resKey: r.headers.get("zg-res-key") };
   } finally {
     clearTimeout(t);
   }
@@ -74,6 +77,7 @@ export async function complete(system: string, user: string, backend: "zg" | "op
       requestId: trace.request_id ?? data.id ?? null,
       provider: trace.provider ?? null,
       teeVerified: typeof trace.tee_verified === "boolean" ? trace.tee_verified : null,
+      chatId: data._resKey ?? data.id ?? null,
       latencyMs: Date.now() - started,
     };
   }
@@ -90,6 +94,7 @@ export async function complete(system: string, user: string, backend: "zg" | "op
     requestId: data.id ?? null,
     provider: null,
     teeVerified: null,
+    chatId: null,
     latencyMs: Date.now() - started,
   };
 }
