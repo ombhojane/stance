@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, Coins, Flag, Info, TriangleAlert } from "lucide-react";
+import { ArrowRight, ChevronDown, TriangleAlert } from "lucide-react";
 import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
 import { useLiveSpot } from "@/lib/store";
 import { snapTarget, useStanceQuote } from "@/lib/chain/useStanceQuote";
-import { pct, price, usd } from "@/lib/format";
+import { pct, usd } from "@/lib/format";
 import { AsciiCone } from "./AsciiCone";
-import { Chip, OddsRing, Stepper, TickSlider } from "./controls";
+import { Chip, TickSlider } from "./controls";
 import { RollingNumber } from "./RollingNumber";
 
 type Field = "amount" | "target" | "date" | null;
@@ -27,7 +27,10 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   const live = q.spot; // Chainlink ETH/USD when live, simulated in demo
   const a = ASSETS[draft.asset];
   const snap = (v: number) => snapTarget(v, q.targets);
-  const bar = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLDivElement>(null);
+  const cta = useRef<HTMLButtonElement>(null);
+  const [amtText, setAmtText] = useState(() => String(draft.amount));
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     if (q.live && q.targets.length && !q.targets.includes(draft.target)) setDraft({ ...draft, target: snapTarget(draft.target, q.targets) });
@@ -39,7 +42,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   }, [draft, syncUrl, router]);
 
   useEffect(() => {
-    const close = (e: PointerEvent) => bar.current && !bar.current.contains(e.target as Node) && setOpen(null);
+    const close = (e: PointerEvent) => composer.current && !composer.current.contains(e.target as Node) && setOpen(null);
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", esc);
@@ -49,7 +52,21 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
     };
   }, []);
 
+  // the sticky bar shows only while the real button is off screen
+  useEffect(() => {
+    const el = cta.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
+  const setAmount = (v: number) => {
+    const n = Math.min(50000, Math.max(50, Math.round(v)));
+    setAmtText(String(n));
+    set({ amount: n });
+  };
   const setDir = (dir: Direction) => {
     if (dir === draft.dir) return;
     const mirrored = roundTo(2 * live - draft.target, a.grid);
@@ -58,100 +75,90 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   };
   const move = ((draft.target - live) / live) * 100;
   const toggle = (f: Field) => setOpen((o) => (o === f ? null : f));
+  const review = () => q.ok && router.push(`/make/review?${draftToQuery(draft)}`);
+  const up = draft.dir === "above";
 
   return (
-    <section className="relative">
-      {/* ── Visual ── */}
-      <div className="relative h-[560px] overflow-hidden rounded-[36px] bg-hero ring-1 ring-line/60 sm:h-[660px]">
-        <AsciiCone asset={draft.asset} dir={draft.dir} target={draft.target} expiry={draft.expiry} spot={live} chance={q.chanceFull} onTarget={(v) => set({ target: snap(v) })} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center px-4 pt-9 text-center sm:pt-12">
-          <span className="tnum rounded-full bg-tile/80 px-3 py-1.5 font-mono text-[11px] text-mute backdrop-blur">
-            ETH <span className="text-ink">{price(Math.round(live))}</span>
-          </span>
-          <h1 className="mt-5 text-[clamp(2.4rem,6.2vw,5rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-            Trade what you think
-            <br />
-            <span className="serif font-normal">happens next.</span>
-          </h1>
-        </div>
-      </div>
+    <section className="relative flex min-h-[600px] flex-col overflow-hidden rounded-[36px] bg-hero ring-1 ring-line/60 sm:min-h-[640px]">
+      {/* the price cone, as a quiet field behind everything */}
+      <AsciiCone quiet asset={draft.asset} dir={draft.dir} target={draft.target} expiry={draft.expiry} spot={live} chance={q.chanceFull} />
+      {/* soft clearing so the sentence reads over the glyphs (no edges, not a card) */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_28%_at_50%_57%,var(--hero-bg)_45%,transparent_100%)] sm:bg-[radial-gradient(ellipse_48%_34%_at_50%_54%,var(--hero-bg)_30%,transparent_100%)]" />
 
-      {/* ── Composer (docked like a search bar) ── */}
-      <div ref={bar} className="relative z-20 mx-auto -mt-[118px] w-full max-w-[1000px] px-2 sm:px-6">
-        <div className="rounded-[28px] bg-tile p-3 shadow-[0_30px_80px_-30px_rgba(0,0,0,.45)] ring-1 ring-line sm:p-4">
-          {/* direction tabs */}
-          <div className="flex gap-5 px-2 pb-3 pt-1 text-sm">
-            {(["above", "below"] as Direction[]).map((d) => (
-              <button key={d} onClick={() => setDir(d)} className={`relative pb-1.5 font-medium transition ${draft.dir === d ? "text-ink" : "text-mute hover:text-ink"}`}>
-                {d === "above" ? "Goes up" : "Goes down"}
-                {draft.dir === d && <m.span layoutId="dir-underline" className={`absolute inset-x-0 -bottom-0.5 h-0.5 rounded-full ${d === "above" ? "bg-up" : "bg-down"}`} />}
-              </button>
-            ))}
-          </div>
+      <div className="pointer-events-none relative flex flex-1 flex-col items-center px-5 pb-12 pt-12 text-center sm:pt-14">
+        <h1 className="text-[clamp(1.5rem,3.2vw,2.5rem)] font-semibold leading-[1.05] tracking-[-0.035em]">
+          Trade what you think <br className="sm:hidden" />
+          <span className="serif font-normal">happens next.</span>
+        </h1>
 
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-[1fr_1fr_1fr_1.05fr_auto]">
-            <FieldBtn icon={<Coins size={15} />} label="Make" active={open === "amount"} onClick={() => toggle("amount")}>
-              <span className="text-up">{usd(draft.amount, { cents: false })}</span>
-            </FieldBtn>
-            <FieldBtn
-              icon={draft.dir === "above" ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
-              label={draft.dir === "above" ? "If above" : "If below"}
-              active={open === "target"}
-              onClick={() => toggle("target")}
-            >
+        <div ref={composer} className="pointer-events-auto my-auto w-full max-w-[860px] pt-10">
+          {/* the sentence */}
+          <p className="text-[clamp(1.6rem,4.2vw,3rem)] font-medium leading-[1.6] tracking-[-0.025em] text-mute">
+            I want to make{" "}
+            <SChip tone="amount" active={open === "amount"} onClick={() => toggle("amount")}>
+              {usd(draft.amount, { cents: false })}
+            </SChip>{" "}
+            if <span className="text-ink">ETH</span> ends{" "}
+            <SChip tone="dir" caret={false} onClick={() => setDir(up ? "below" : "above")}>
+              {up ? "above" : "below"}
+            </SChip>{" "}
+            <SChip tone={up ? "up" : "down"} active={open === "target"} onClick={() => toggle("target")}>
               <RollingNumber value={draft.target} format="price" />
-            </FieldBtn>
-            <FieldBtn icon={<CalendarDays size={15} />} label="By" active={open === "date"} onClick={() => toggle("date")}>
+            </SChip>{" "}
+            on{" "}
+            <SChip tone="date" active={open === "date"} onClick={() => toggle("date")}>
               {expiryLabel(draft.expiry)}
-            </FieldBtn>
-            <div className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
-              <OddsRing p={q.chanceFull} size={44} stroke={5}>
-                <span className="text-[11px] font-semibold">{pct(q.chanceFull)}</span>
-              </OddsRing>
-              <div className="leading-tight">
-                <p className="text-xs text-mute">Costs</p>
-                <p className="text-lg font-semibold">
-                  <RollingNumber value={q.cost} format="usd" />
-                </p>
-              </div>
-            </div>
-            <button
-              disabled={!q.ok}
-              onClick={() => router.push(`/make/review?${draftToQuery(draft)}`)}
-              className="col-span-2 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-7 font-semibold text-on-accent transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 lg:col-span-1 lg:h-full lg:rounded-full"
-            >
-              <Flag size={17} /> Take stance <ArrowRight size={17} />
-            </button>
-          </div>
+            </SChip>
+          </p>
 
-          {/* popover editors */}
-          <AnimatePresence>
-            {open && (
-              <m.div
-                key={open}
-                initial={{ opacity: 0, y: -6, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: "auto" }}
-                exit={{ opacity: 0, y: -6, height: 0 }}
-                transition={{ type: "spring", stiffness: 420, damping: 36 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-3 rounded-2xl bg-tile-2 p-4 sm:p-5">
+          {/* editor for the tapped word */}
+          <AnimatePresence initial={false}>
+              {open && (
+                <m.div
+                  key={open}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 40 }}
+                  className="overflow-hidden"
+                >
+                <div className="mx-auto mt-5 w-full max-w-[560px] rounded-3xl bg-tile p-4 text-left shadow-[0_30px_80px_-30px_rgba(0,0,0,.5)] ring-1 ring-line sm:p-5">
                   {open === "amount" && (
-                    <div className="flex flex-wrap items-center gap-4">
-                      <Stepper value={draft.amount} onChange={(v) => set({ amount: v })} step={50} min={50} max={50000} />
-                      <div className="flex flex-wrap gap-2">
-                        {[100, 250, 500, 1000, 5000].map((v) => (
-                          <Chip key={v} active={draft.amount === v} onClick={() => set({ amount: v })}>
-                            {usd(v, { cents: false })}
-                          </Chip>
-                        ))}
+                    <div>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-semibold tracking-tight">$</span>
+                        <input
+                          autoFocus
+                          value={amtText}
+                          inputMode="numeric"
+                          aria-label="Amount you want to make"
+                          onChange={(e) => {
+                            const t = e.target.value.replace(/[^0-9]/g, "").slice(0, 5);
+                            setAmtText(t);
+                            const n = Number(t);
+                            if (n >= 50 && n <= 50000) set({ amount: n });
+                          }}
+                          onBlur={() => setAmount(Number(amtText) || draft.amount)}
+                          onKeyDown={(e) => e.key === "Enter" && setOpen(null)}
+                          className="tnum w-full min-w-0 bg-transparent text-4xl font-semibold tracking-tight text-ink outline-none"
+                        />
                       </div>
+                      <input
+                        type="range"
+                        min={100}
+                        max={10000}
+                        step={50}
+                        value={Math.min(10000, Math.max(100, draft.amount))}
+                        onChange={(e) => setAmount(Number(e.target.value))}
+                        aria-label="Amount you want to make"
+                        className="mt-4 w-full accent-accent"
+                      />
                     </div>
                   )}
                   {open === "target" && (
                     <div>
                       <div className="mb-1 flex items-baseline justify-between">
-                        <span className="text-3xl font-semibold tracking-tight">
+                        <span className="text-3xl font-semibold tracking-tight text-ink">
                           <RollingNumber value={draft.target} format="price" />
                         </span>
                         <span className={`font-mono text-sm ${move >= 0 ? "text-up" : "text-down"}`}>
@@ -166,16 +173,16 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                         max={roundTo(live * 1.6, a.grid)}
                         step={a.grid}
                         marker={{ value: live, label: "now" }}
-                        tone={draft.dir === "above" ? "up" : "down"}
+                        tone={up ? "up" : "down"}
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(q.targets.length
                           ? q.targets.map((v) => Math.round(((v - live) / live) * 100))
-                          : draft.dir === "above" ? [5, 10, 20, 35] : [-5, -10, -20, -35]
+                          : up ? [5, 10, 20, 35] : [-5, -10, -20, -35]
                         ).map((p, i) => {
                           const v = q.targets.length ? q.targets[i] : roundTo(live * (1 + p / 100), a.grid);
                           return (
-                            <Chip key={p} active={draft.target === v} onClick={() => set({ target: v })}>
+                            <Chip key={`${p}-${i}`} active={draft.target === v} onClick={() => set({ target: v })}>
                               {p > 0 ? "+" : ""}
                               {p}%
                             </Chip>
@@ -192,10 +199,13 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                         return (
                           <button
                             key={e.id}
-                            onClick={() => set({ expiry: e.id })}
-                            className={`rounded-2xl p-3.5 text-left transition active:scale-[0.98] ${on ? "bg-tile ring-2 ring-up" : "bg-tile/60 hover:bg-tile"}`}
+                            onClick={() => {
+                              set({ expiry: e.id });
+                              setOpen(null);
+                            }}
+                            className={`rounded-2xl p-3.5 text-left transition active:scale-[0.98] ${on ? "bg-tile-2 ring-2 ring-up" : "bg-tile-2/60 hover:bg-tile-2"}`}
                           >
-                            <p className="font-semibold">{e.label}</p>
+                            <p className="font-semibold text-ink">{e.label}</p>
                             <p className="tnum mt-2 font-mono text-xs">
                               <span className="text-odds">{pct(alt.chanceFull)}</span> <span className="text-mute">· {usd(alt.cost)}</span>
                             </p>
@@ -205,36 +215,94 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                     </div>
                   )}
                 </div>
-              </m.div>
+                </m.div>
+              )}
+          </AnimatePresence>
+
+          {/* what it costs, and go */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+            <p className="tnum text-lg text-mute">
+              You pay{" "}
+              <span className="font-semibold text-ink">
+                <RollingNumber value={q.cost} format="usd" />
+              </span>
+              <span className="mx-2 text-faint">·</span>
+              <span className="text-odds">{pct(q.chanceFull)}</span> chance
+            </p>
+            <button
+              ref={cta}
+              disabled={!q.ok}
+              onClick={review}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-semibold text-on-accent transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+            >
+              Review trade <ArrowRight size={17} />
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {q.nudge?.tone === "warn" && (
+              <m.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-down-deep px-4 py-2 text-sm text-down"
+              >
+                <TriangleAlert size={15} />
+                {q.live ? q.nudge.text.split(".")[0] + "." : "Already there. Pick a target further away."}
+              </m.p>
             )}
           </AnimatePresence>
         </div>
-
-        <AnimatePresence>
-          {q.nudge && (
-            <m.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`mx-auto mt-3 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm ${q.nudge.tone === "warn" ? "bg-down-deep text-down" : "bg-odds-deep text-odds"}`}
-            >
-              {q.nudge.tone === "warn" ? <TriangleAlert size={15} /> : <Info size={15} />}
-              {q.nudge.tone === "warn" && !q.live ? "Already there. Pick a target further away." : q.nudge.text.split(".")[0] + "."}
-            </m.p>
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* sticky bar while the button is off screen */}
+      <AnimatePresence>
+        {stuck && (
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ type: "spring", stiffness: 420, damping: 38 }}
+            className="fixed inset-x-0 bottom-[76px] z-40 flex justify-center px-4 md:bottom-4"
+          >
+            <div className="flex items-center gap-4 rounded-full bg-tile/90 py-2 pl-5 pr-2 shadow-[0_18px_50px_-18px_rgba(0,0,0,.5)] ring-1 ring-line backdrop-blur">
+              <span className="text-sm text-mute">
+                You pay <span className="tnum font-semibold text-ink">{usd(q.cost)}</span>
+              </span>
+              <button
+                disabled={!q.ok}
+                onClick={review}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+              >
+                Review trade <ArrowRight size={15} />
+              </button>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
 
-function FieldBtn({ icon, label, active, onClick, children }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void; children: React.ReactNode }) {
+// ── Sentence chip: a word of the sentence you can change ────────────────
+// light: white chips with coloured words (tints vanish on the lime hero); dark: tinted chips
+const TONES = {
+  amount: "bg-tile text-sun dark:bg-sun/15",
+  date: "bg-tile text-odds dark:bg-odds-deep",
+  up: "bg-tile text-up dark:bg-up-deep",
+  down: "bg-tile text-down dark:bg-down-deep",
+  dir: "bg-ink text-bg dark:bg-tile-3 dark:text-ink",
+} as const;
+
+function SChip({ tone, active, caret = true, onClick, children }: { tone: keyof typeof TONES; active?: boolean; caret?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-2xl px-3 py-2.5 text-left transition ${active ? "bg-tile-2 ring-1 ring-line" : "hover:bg-tile-2"}`}>
-      <span className="flex items-center gap-1.5 text-xs font-medium text-mute">
-        {icon} {label}
-      </span>
-      <span className="mt-0.5 block text-xl font-semibold tracking-tight">{children}</span>
+    <button
+      onClick={onClick}
+      aria-expanded={caret ? !!active : undefined}
+      className={`inline-flex h-[1.35em] items-center gap-0.5 rounded-[0.45em] px-[0.32em] align-[-0.18em] font-semibold tracking-tight transition hover:ring-2 hover:ring-current/20 active:scale-[0.98] ${TONES[tone]} ${active ? "ring-2 ring-current/30" : ""}`}
+    >
+      {children}
+      {caret && <ChevronDown className={`size-[0.6em] opacity-50 transition-transform ${active ? "rotate-180" : ""}`} />}
     </button>
   );
 }

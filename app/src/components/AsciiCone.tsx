@@ -17,6 +17,8 @@ interface Props {
   spot: number;
   chance: number;
   onTarget?: (price: number) => void;
+  /** background mode: just the field, the journeys and the pointer wake */
+  quiet?: boolean;
 }
 
 const RAMP = " .·:-=+*#%@";
@@ -33,14 +35,16 @@ function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }: Props) {
+export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget, quiet = false }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const theme = useTheme();
-  const props = useRef({ asset, dir, target, expiry, spot, chance, onTarget });
-  props.current = { asset, dir, target, expiry, spot, chance, onTarget };
+  const props = useRef({ asset, dir, target, expiry, spot, chance, onTarget, quiet });
+  props.current = { asset, dir, target, expiry, spot, chance, onTarget, quiet };
   const geo = useRef<{ rowToPrice: (y: number) => number; priceToY: (p: number) => number; flagX: number }>({ rowToPrice: () => 0, priceToY: () => 0, flagX: 0 });
   const dragging = useRef(false);
+  // pointer wake: recent cursor positions; glyphs near them bloom, then decay
+  const trail = useRef<{ x: number; y: number; t: number }[]>([]);
 
   useEffect(() => {
     const el = canvas.current!;
@@ -93,14 +97,15 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       const a = ASSETS[p.asset];
       const cols = Math.floor(w / CW);
       const rows = Math.floor(h / CH);
-      const x0 = Math.max(3, Math.round(cols * 0.07));
-      const xE = Math.round(cols * (w < 640 ? 0.8 : 0.84));
+      const x0 = p.quiet ? 0 : Math.max(3, Math.round(cols * 0.07));
+      const xE = Math.round(cols * (p.quiet ? 0.94 : w < 640 ? 0.8 : 0.84));
       const T = yearsUntil(p.expiry);
       const sdT = a.vol * Math.sqrt(T);
       const half = Math.max(1.7 * sdT, Math.abs(Math.log(p.target / p.spot)) * 1.3, 0.05);
       const mid = Math.log(p.spot);
-      const rTop = rows * (w < 640 ? 0.3 : 0.34);
-      const rBot = rows * (w < 640 ? 0.97 : 0.8);
+      // phones: the headline wraps to two lines, so the plot starts lower
+      const rTop = rows * (p.quiet ? 0.2 : w < 640 ? 0.5 : 0.34);
+      const rBot = rows * (p.quiet ? 0.95 : 0.8);
       const rowToLn = (r: number) => mid + half - ((r - rTop) / (rBot - rTop)) * 2 * half;
       const lnToRow = (ln: number) => rTop + ((mid + half - ln) / (2 * half)) * (rBot - rTop);
       return { a, cols, rows, x0, xE, T, mid, half, rTop, rBot, rowToLn, lnToRow };
@@ -109,7 +114,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     const buildBase = () => {
       const p = props.current;
       const L = layout();
-      const key = [w, h, p.asset, p.dir, p.target, p.expiry, Math.round(p.spot * 10), theme].join("|");
+      const key = [w, h, p.quiet, p.asset, p.dir, p.target, p.expiry, Math.round(p.spot * 10), theme].join("|");
       if (key === baseKey) return L;
       baseKey = key;
       C = colors();
@@ -202,6 +207,43 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       ctx.font = `500 12px ${MONO}`;
       ctx.textBaseline = "top";
 
+      // pointer wake: the field blooms along the cursor's path, like ink in water
+      const LIFE = reduced ? 350 : 900;
+      if (trail.current.length) {
+        const heat = new Map<number, number>();
+        for (const pt of trail.current) {
+          const age = (now - pt.t) / LIFE;
+          if (age >= 1) continue;
+          const cc = pt.x / CW;
+          const cr = pt.y / CH;
+          for (let dc = -5; dc <= 5; dc++) {
+            for (let dr = -3; dr <= 3; dr++) {
+              const c = Math.round(cc) + dc;
+              const r = Math.round(cr) + dr;
+              if (c < 0 || r < 0 || c >= L.cols || r >= L.rows) continue;
+              const dx = c + 0.5 - cc;
+              const dy = r + 0.5 - cr;
+              const g = Math.exp(-(dx * dx / 9 + dy * dy / 3.4)) * (1 - age);
+              if (g < 0.08) continue;
+              const key = r * 4096 + c;
+              if ((heat.get(key) ?? 0) < g) heat.set(key, g);
+            }
+          }
+        }
+        ctx.font = `600 12px ${MONO}`;
+        for (const [key, g] of heat) {
+          const c = key % 4096;
+          const r = (key - c) / 4096;
+          const idx = Math.min(RAMP.length - 1, 2 + Math.floor(g * (RAMP.length - 2) + hash(c, r) * 1.5));
+          ctx.fillStyle = C.win;
+          ctx.globalAlpha = Math.min(0.95, 0.3 + g * 0.7);
+          ctx.fillText(RAMP[idx], c * CW, r * CH);
+        }
+        ctx.globalAlpha = 1;
+        ctx.font = `500 12px ${MONO}`;
+        trail.current = trail.current.filter((p) => now - p.t < LIFE);
+      }
+
       // twinkle
       if (!reduced) {
         const tick = Math.floor(now / 180);
@@ -224,6 +266,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
         flagX: xE,
       };
 
+      if (!p.quiet) {
       // target line
       ctx.globalAlpha = 0.75;
       ctx.fillStyle = C.text;
@@ -232,6 +275,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       ctx.globalAlpha = 0.45;
       for (let r = Math.floor(L.rTop - 2); r < L.rows; r += 1) ctx.fillText("¦", xE, r * CH);
       ctx.globalAlpha = 1;
+      }
 
       // journeys
       const cycle = reduced ? 1 : ((now / 1000) % 5.2) / 4.2;
@@ -253,6 +297,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       });
       ctx.globalAlpha = 1;
 
+      if (!p.quiet) {
       // today
       const sY = L.lnToRow(Math.log(p.spot)) * CH;
       ctx.fillStyle = C.text;
@@ -285,6 +330,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       pill(right ? fx - 10 : fx + 38, tY - 34, `$${Math.round(p.target).toLocaleString("en-US")}`, C.accent, C.onAccent, right ? "right" : "left");
       pill(right ? fx - 10 : fx + 38, tY - 6, `${Math.round(p.chance * 100)}% chance`, C.tile, C.text, right ? "right" : "left");
       pill(xE, h - 18, expiryLabel(p.expiry), C.tile, C.text, "center");
+      }
 
       raf = requestAnimationFrame(frame);
     };
@@ -297,6 +343,21 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
     });
     io.observe(wrap.current!);
     document.addEventListener("visibilitychange", kick);
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return;
+      const r = el.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      if (x < 0 || y < 0 || x > r.width || y > r.height) return;
+      const tr = trail.current;
+      const lastPt = tr[tr.length - 1];
+      // drop a wake point when the cursor has actually moved a cell or so
+      if (!lastPt || Math.abs(x - lastPt.x) + Math.abs(y - lastPt.y) > 6) {
+        tr.push({ x, y, t: performance.now() });
+        if (tr.length > 36) tr.splice(0, tr.length - 36);
+      }
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -310,6 +371,7 @@ export function AsciiCone({ asset, dir, target, expiry, spot, chance, onTarget }
       ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", kick);
+      window.removeEventListener("pointermove", onMove);
     };
   }, [theme]);
 
