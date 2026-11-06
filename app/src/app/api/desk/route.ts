@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const force = req.nextUrl.searchParams.get("fresh") === "1";
+  const force = req.nextUrl.searchParams.get("fresh") === "1" && process.env.NODE_ENV !== "production";
   const read = await getDeskRead(force);
   // context stays server-side; the client needs the read and its receipt
   const { context, ...pub } = read;

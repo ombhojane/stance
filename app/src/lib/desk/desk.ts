@@ -112,7 +112,10 @@ async function compute(): Promise<DeskRead> {
   const ctx = await gatherContext();
   for (const b of backends()) {
     try {
-      const r = await complete(SYSTEM, userPrompt(ctx), b);
+      const r = await Promise.race([
+        complete(SYSTEM, userPrompt(ctx), b),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("deadline")), 30_000)),
+      ]);
       const parsed = JSON.parse(r.text);
       const vols = clampVols(parsed.vols);
       if (!vols) throw new Error(`bad vols: ${JSON.stringify(parsed.vols)?.slice(0, 160)}`);
