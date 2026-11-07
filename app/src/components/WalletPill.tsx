@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmi";
+import { useAccount, useChainId, useConnect, useConnectors, useDisconnect, useSwitchChain } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
 import { useLive } from "@/lib/mode";
 import { useUsd } from "@/lib/chain/live";
 import { useStanceTx } from "@/lib/chain/tx";
@@ -74,8 +75,20 @@ function LivePill() {
   const [mounted, setMounted] = useState(false);
   const [upi, setUpi] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false); // MetaMask has our request open (error -32002)
   const privy = usePrivyBridge();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   useEffect(() => setMounted(true), []);
+
+  // once connected: clear any hint, and put the wallet on Base Sepolia straight away
+  useEffect(() => {
+    if (!isConnected) return;
+    setHint(null);
+    setWaiting(false);
+    if (chainId !== baseSepolia.id) switchChain({ chainId: baseSepolia.id });
+  }, [isConnected, chainId, switchChain]);
 
   useEffect(() => {
     const close = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
@@ -99,9 +112,33 @@ function LivePill() {
 
   if (!isConnected) {
     const pick = (id: string) => {
-      const c = connectors.find((x) => x.id === id || x.type === id);
-      if (c) connect({ connector: c });
       setOpen(false);
+      if (isPending || waiting) return; // a request is already open in the wallet; don't stack another
+      // prefer MetaMask's own EIP-6963 connector: window.ethereum may belong to another extension
+      const c =
+        id === "injected"
+          ? connectors.find((x) => x.id === "io.metamask") ?? connectors.find((x) => x.id === "injected")
+          : connectors.find((x) => x.id === id || x.type === id);
+      if (!c) {
+        setHint("No browser wallet found. Install MetaMask, then reload.");
+        return;
+      }
+      setHint(null);
+      connect(
+        { connector: c, chainId: baseSepolia.id },
+        {
+          onError: (e) => {
+            const code = (e as { code?: number; cause?: { code?: number } }).code ?? (e as { cause?: { code?: number } }).cause?.code;
+            const msg = e.message ?? "";
+            if (code === -32002 || /already pending/i.test(msg)) {
+              setWaiting(true);
+              setHint("MetaMask already has a request open. Click the MetaMask icon in your browser toolbar to approve it.");
+            } else if (code === 4001 || /reject|denied/i.test(msg)) setHint("You cancelled in MetaMask.");
+            else if (/provider not found/i.test(msg)) setHint("No browser wallet found. Install MetaMask, then reload.");
+            else setHint(msg.split("\n")[0].slice(0, 140));
+          },
+        },
+      );
     };
     const hasWc = connectors.some((c) => c.type === "walletConnect");
     return (
@@ -111,12 +148,26 @@ function LivePill() {
           disabled={isPending}
           className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition active:scale-95 disabled:opacity-50"
         >
-          {isPending ? "Connecting…" : "Connect"}
+          {isPending ? "Check MetaMask…" : waiting ? "Approve in MetaMask" : "Connect"}
         </button>
         {open && (
           <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-2xl bg-tile p-1 shadow-xl ring-1 ring-line">
             <MenuItem onClick={() => pick("injected")}>Browser wallet</MenuItem>
             <MenuItem onClick={() => pick("walletConnect")}>Phone wallet (WalletConnect)</MenuItem>
+          </div>
+        )}
+        {hint && (
+          <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl bg-tile p-3.5 text-sm shadow-xl ring-1 ring-line">
+            <p className="leading-snug">{hint}</p>
+            <button
+              onClick={() => {
+                setHint(null);
+                setWaiting(false);
+              }}
+              className="mt-2 text-xs font-medium text-mute hover:text-ink"
+            >
+              Dismiss
+            </button>
           </div>
         )}
       </div>
