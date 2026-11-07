@@ -1,0 +1,259 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<script src="timeline.js"></script>
+<style>
+:root{--bg:#f3f1ea;--tile:#ffffff;--tile2:#f1efe8;--line:#e2dfd5;--ink:#111113;--mute:#6d6b72;--faint:#a8a5ac;
+--accent:#c6f24e;--up:#4a7d00;--upd:#ebf6cf;--down:#d4432f;--downd:#fbe4df;--odds:#6a4ee0;--oddsd:#ece7ff;--sun:#c98a00;--sund:#f7ecd4}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg)}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--bg);font-family:"Inter Tight",sans-serif;color:var(--ink);font-weight:600}
+.scene{position:absolute;inset:0;opacity:0;overflow:hidden}
+.serif{font-family:"Instrument Serif",serif;font-weight:400}
+.mono{font-family:"JetBrains Mono",monospace;font-weight:400}
+.abs{position:absolute}
+.big{font-weight:700;letter-spacing:-.035em;line-height:1.02}
+.label{font-family:"JetBrains Mono",monospace;font-size:22px;color:var(--mute);letter-spacing:.14em}
+.cam{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+.cam img.shot{position:absolute;left:0;top:0;width:1920px}
+.tile{position:absolute;background:var(--tile);border:1px solid var(--line);border-radius:28px;box-shadow:0 24px 60px -30px rgba(17,17,19,.18)}
+.pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:10px 22px}
+.hl{position:absolute;border:4px solid var(--ink);border-radius:18px;box-shadow:0 0 0 6px rgba(17,17,19,.08)}
+.hl.lime{border-color:#9fc92c;box-shadow:0 0 0 6px rgba(198,242,78,.25)}
+#cap{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);max-width:1420px;padding:14px 28px;background:rgba(17,17,19,.86);color:#f4f3ef;border-radius:16px;font:600 29px/1.3 "Inter Tight";text-align:center;opacity:0;z-index:50}
+.cursor{position:absolute;width:44px;height:52px;z-index:40}
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:multiply;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* scene 02 chips */
+.why{position:absolute;top:640px;width:420px;padding:30px 34px;background:var(--tile);border:1px solid var(--line);border-radius:24px;transform-origin:50% 100%}
+.why .k{font:600 21px "JetBrains Mono";color:var(--down)}
+.why .t{font-size:40px;font-weight:700;letter-spacing:-.02em;margin-top:8px}
+.why .d{font-size:24px;font-weight:500;color:var(--mute);margin-top:10px;line-height:1.3}
+/* scene 03 */
+.opt{position:absolute;width:560px;padding:34px 38px;background:var(--tile);border:1px solid var(--line);border-radius:26px;transform-origin:50% 50%}
+.opt .h{font:600 21px "JetBrains Mono";color:var(--mute)}
+.opt .v{font-size:52px;font-weight:700;letter-spacing:-.03em;margin-top:10px}
+.opt .s{font-size:25px;font-weight:500;color:var(--mute);margin-top:8px}
+.strike{position:absolute;left:-3%;top:50%;width:106%;height:7px;background:var(--down);border-radius:4px;transform-origin:0 50%}
+/* scene 05 callouts */
+.co{position:absolute;padding:20px 30px;border-radius:22px;background:var(--tile);border:1px solid var(--line);box-shadow:0 20px 50px -24px rgba(17,17,19,.25);transform-origin:50% 100%}
+.co .k{font:600 19px "JetBrains Mono";letter-spacing:.06em}
+.co .v{font-size:54px;font-weight:700;letter-spacing:-.03em;margin-top:2px}
+/* scene 08 diagram */
+.node{position:absolute;width:480px;padding:36px 38px;background:var(--tile);border:1px solid var(--line);border-radius:28px;transform-origin:50% 50%}
+.node .h{font:600 20px "JetBrains Mono";color:var(--mute);letter-spacing:.1em}
+.node .v{font-size:44px;font-weight:700;letter-spacing:-.025em;margin-top:10px;line-height:1.08}
+.node .s{font:400 21px "JetBrains Mono";color:var(--mute);margin-top:12px}
+.arrow{position:absolute;height:7px;background:var(--ink);border-radius:4px;transform-origin:0 50%}
+.arrow:after{content:"";position:absolute;right:-4px;top:50%;transform:translateY(-50%);border:14px solid transparent;border-left:20px solid var(--ink);border-right:0}
+/* end card dots */
+.dot{position:absolute;border-radius:50%;background:var(--ink)}
+</style></head>
+<body><div id="stage">
+
+<!-- 01 SEBI -->
+<div class="scene" id="s01">
+  <div class="abs label" id="s01l" style="left:150px;top:120px">SEBI · SEPTEMBER 2024 · EQUITY F&amp;O STUDY</div>
+  <div class="abs big" id="s01n" style="left:138px;top:200px;font-size:500px;letter-spacing:-.05em">0%</div>
+  <div class="abs" id="s01a" style="left:1090px;top:330px;width:700px;font-size:60px;font-weight:700;letter-spacing:-.025em;line-height:1.1">of individual options traders in India lost money.</div>
+  <div class="abs mono" id="s01y" style="left:1094px;top:560px;font-size:26px;color:var(--mute)">FY22 – FY24 · three years</div>
+  <div class="abs big" id="s01m" style="left:150px;top:800px;font-size:150px;color:var(--down)">₹1.8 lakh crore.</div>
+  <div class="abs serif" id="s01g" style="left:1240px;top:800px;font-size:150px;font-style:italic">Gone.</div>
+</div>
+
+<!-- 02 right but lose -->
+<div class="scene" id="s02">
+  <div class="abs big" id="s02a" style="left:150px;top:180px;font-size:120px">Right about the market.</div>
+  <div class="abs big serif" id="s02b" style="left:150px;top:330px;font-size:120px;font-style:italic;color:var(--down)">Wrong product.</div>
+  <div class="why" id="w1" style="left:150px"><div class="k">θ</div><div class="t">Time decay</div><div class="d">Every day you hold, it quietly bleeds.</div></div>
+  <div class="why" id="w2" style="left:620px"><div class="k">σ²</div><div class="t">Volatility crush</div><div class="d">The event passes. The premium collapses.</div></div>
+  <div class="why" id="w3" style="left:1090px"><div class="k">M</div><div class="t">Margin calls</div><div class="d">Your loss isn't capped. Your evening is.</div></div>
+  <div class="abs" id="s02c" style="left:1560px;top:660px;width:240px;font-size:27px;font-weight:500;color:var(--mute);line-height:1.35">built for pros.<br>paid for by retail.</div>
+</div>
+
+<!-- 03 the person -->
+<div class="scene" id="s03">
+  <div class="abs label" style="left:150px;top:120px">A SIMPLE OPINION</div>
+  <div class="tile" id="s03o" style="left:510px;top:210px;width:900px;padding:56px 70px;text-align:center;transform-origin:50% 50%">
+    <div style="font-size:30px;color:var(--mute);font-weight:500">you're sure</div>
+    <div style="font-size:84px;font-weight:700;letter-spacing:-.03em;margin-top:8px">ETH <span style="color:var(--up)">+$200</span> in 3 weeks</div>
+  </div>
+  <div class="opt" id="s03x" style="left:290px;top:560px"><div class="h">OPTION A</div><div class="v">Buy 1 ETH</div><div class="s">$2,500 you don't have lying around</div><div class="strike" id="k1" style="transform:scaleX(0)"></div></div>
+  <div class="opt" id="s03y2" style="left:1070px;top:560px"><div class="h">OPTION B</div><div class="v">Options chain</div><div class="s">47 strikes · Greeks · margin</div><div class="strike" id="k2" style="transform:scaleX(0)"></div></div>
+  <div class="abs serif" id="s03z" style="left:0;right:0;top:880px;text-align:center;font-size:72px;font-style:italic">So the opinion… stays an opinion.</div>
+</div>
+
+<!-- 04 the sentence -->
+<div class="scene" id="s04"><div class="cam" id="c04"><img class="shot" src="shots_s/home.jpg"><div class="hl lime" id="hl04a" style="opacity:0"></div></div></div>
+
+<!-- 05 three numbers -->
+<div class="scene" id="s05"><div class="cam" id="c05"><img class="shot" src="shots_s/home.jpg"></div>
+  <div class="co" id="co1" style="left:300px;top:270px"><div class="k" style="color:var(--mute)">YOU PAY</div><div class="v">$193</div></div>
+  <div class="co" id="co2" style="left:790px;top:200px"><div class="k" style="color:var(--up)">YOU MAKE</div><div class="v" style="color:var(--up)">$500</div></div>
+  <div class="co" id="co3" style="left:1300px;top:270px"><div class="k" style="color:var(--odds)">LIVE ODDS</div><div class="v" style="color:var(--odds)">10%</div></div>
+  <div class="co" id="co4" style="left:640px;top:800px;background:var(--ink);border-color:var(--ink)"><div class="v" style="font-size:40px;color:#f4f3ef">max loss $193 · locked onchain</div></div>
+</div>
+
+<!-- 06 review + slide -->
+<div class="scene" id="s06">
+  <div class="cam" id="c06"><img class="shot tall" src="shots_s/review_full.jpg"></div>
+  <div class="cam" id="c06b" style="opacity:0"><img class="shot" src="shots_s/done.jpg"></div>
+</div>
+
+<!-- 07 receipts -->
+<div class="scene" id="s07"><div class="cam" id="c07"><img class="shot" src="shots_s/home_receipt.jpg"><div class="hl" id="hl07a" style="opacity:0"></div></div></div>
+
+<!-- 08 settlement -->
+<div class="scene" id="s08">
+  <div class="abs label" style="left:150px;top:120px">SETTLEMENT · NOV 27 · 08:00 UTC</div>
+  <div class="abs big" id="s08t" style="left:150px;top:180px;font-size:96px">Nobody presses a button.</div>
+  <div class="node" id="n1" style="left:150px;top:470px"><div class="h">CHAINLINK · ETH/USD</div><div class="v">reads the official price</div><div class="s">round at expiry, verified onchain</div></div>
+  <div class="node" id="n2" style="left:720px;top:470px"><div class="h">THE CONTRACT</div><div class="v">settles the range</div><div class="s">settle(roundId) · permissionless</div></div>
+  <div class="node" id="n3" style="left:1290px;top:470px;background:var(--upd)"><div class="h" style="color:var(--up)">WINNERS</div><div class="v" style="color:var(--up)">paid in full</div><div class="s">collateral was locked all along</div></div>
+  <div class="arrow" id="a1" style="left:585px;top:590px;width:120px;transform:scaleX(0)"></div>
+  <div class="arrow" id="a2" style="left:1155px;top:590px;width:120px;transform:scaleX(0)"></div>
+  <div class="abs mono" id="s08f" style="left:150px;top:880px;font-size:24px;color:var(--mute)">base sepolia · chainlink CRE workflow · uniswap TWAP sanity-checked</div>
+</div>
+
+<!-- 09 house -->
+<div class="scene" id="s09"><div class="cam" id="c09"><img class="shot" src="shots_s/house.jpg"><div class="hl" id="hl09a" style="opacity:0"></div><div class="hl lime" id="hl09b" style="opacity:0"></div></div></div>
+
+<!-- 10 end -->
+<div class="scene" id="s10">
+  <div class="abs" id="s10logo" style="left:770px;top:230px;width:380px;height:280px"></div>
+  <div class="abs big" id="s10a" style="left:0;right:0;top:540px;text-align:center;font-size:92px">Trade what you think <span class="serif" style="font-style:italic;font-weight:400">happens next.</span></div>
+  <div class="abs" id="s10b" style="left:0;right:0;top:700px;text-align:center"><span class="pill" style="background:var(--accent);font-size:40px;font-weight:700;padding:16px 42px">stance.omisaur.app</span></div>
+  <div class="abs mono" id="s10c" style="left:0;right:0;top:830px;text-align:center;font-size:26px;color:var(--mute)">BASE · 1INCH AQUA · CHAINLINK · 0G</div>
+</div>
+
+<svg class="cursor" id="cursor" viewBox="0 0 44 52" style="opacity:0"><path d="M4 3l34 24-15 3 9 17-7 3-9-17-12 10z" fill="#fff" stroke="#111113" stroke-width="3.5" stroke-linejoin="round"/></svg>
+<div id="cap"></div>
+<div class="grain"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const P=(t,a,b)=>clamp((t-a)/(b-a));
+const eo=x=>1-Math.pow(1-x,3);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const back=x=>{const c=1.7,c3=c+1;return 1+c3*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const lerp=(a,b,x)=>a+(b-a)*x;
+const SC={};TL.scenes.forEach(s=>SC[s.id]=s);
+function cue(k,w,n=0,end=false){const ws=TL.words[k];let c=0;for(const x of ws){if(x.w.startsWith(w)){if(c++===n)return (end?x.e:x.s)-SC[k].start}}console.warn('nocue',k,w);return 0}
+function pop(el,t,t0,{dy=40,dur=.45,rot=0}={}){const x=P(t,t0,t0+dur);el.style.opacity=clamp(x*2.2);el.style.transform=`translateY(${(1-eo(x))*dy}px) rotate(${(1-eo(x))*rot}deg)`}
+function cam(el,t,keys){let k0=keys[0],k1=keys[0];for(const k of keys){if(k[0]<=t)k0=k;}
+  const i=keys.indexOf(k0);k1=keys[Math.min(i+1,keys.length-1)];
+  const x=k1===k0?0:eio(P(t,k0[0],k1[0]));
+  const cx=lerp(k0[1],k1[1],x),cy=lerp(k0[2],k1[2],x),z=lerp(k0[3],k1[3],x);
+  el.style.transform=`translate(${960-cx*z}px,${540-cy*z}px) scale(${z})`;return {cx,cy,z}}
+function toScreen(c,x,y){return [960+(x-c.cx)*c.z,540+(y-c.cy)*c.z]}
+function cursorAt(x,y,o,press=0){const c=$('cursor');c.style.opacity=o;c.style.left=(x-4)+'px';c.style.top=(y-3)+'px';c.style.transform=`scale(${1-press*.18})`}
+function box(id,t,a,b,l,tp,w,h){const el=$(id);el.style.opacity=P(t,a,a+.25)-(b?P(t,b,b+.25):0);Object.assign(el.style,{left:l+'px',top:tp+'px',width:w+'px',height:h+'px'})}
+
+/* end-card dot-matrix mark: ascending ramp of dots + lime flag dot (the Stance logo motif) */
+const RAMP=[[0,4,.30],[1,4,.42],[1,3,.34],[2,3,.52],[2,2,.40],[3,2,.66],[3,1,.48],[4,1,.84],[4,0,.58],[5,0,1.0]];
+const LG=$('s10logo');
+RAMP.forEach(([cx,cy,s],i)=>{const d=document.createElement('div');d.className='dot';d.dataset.i=i;
+  const u=56;d.style.left=(40+cx*u)+'px';d.style.top=(20+cy*u)+'px';d.style.width=d.style.height=Math.round(26*s+10)+'px';LG.appendChild(d)});
+const FD=document.createElement('div');FD.className='dot';FD.id='flagdot';FD.style.background='var(--accent)';FD.style.width=FD.style.height='44px';FD.style.left=(40+5*56+10)+'px';FD.style.top='-10px';LG.appendChild(FD);
+
+const R={
+'01'(t){
+  pop($('s01l'),t,.1,{dy:20});
+  const a=cue('01','93')-.35;const x=eo(P(t,a,a+1.2));
+  $('s01n').textContent=Math.round(93*x)+'%';$('s01n').style.opacity=clamp(P(t,a-.2,a));
+  pop($('s01a'),t,cue('01','lost')-.35);pop($('s01y'),t,cue('01','lost')+.4,{dy:20});
+  pop($('s01m'),t,cue('01','one')-.2,{dy:70});pop($('s01g'),t,cue('01','gone')-.1,{dy:30});
+},
+'02'(t){
+  pop($('s02a'),t,cue('02','weren\'t')-.3,{dy:50});pop($('s02b'),t,cue('02','lose')-.4,{dy:50});
+  [['w1','time'],['w2','volatility'],['w3','margin']].forEach(([id,w],i)=>{const a=cue('02',w)-.25;const x=P(t,a,a+.55);const el=$(id);
+    el.style.opacity=clamp(x*3);el.style.transform=`translateY(${(1-back(x))*120}px) rotate(${(1-eo(x))*(i%2?5:-5)}deg)`});
+  pop($('s02c'),t,cue('02','professionals')-.2,{dy:30});
+},
+'03'(t){
+  const o=cue('03','sure')-.3;const x=P(t,o,o+.6);const el=$('s03o');
+  el.style.opacity=clamp(x*2.5);el.style.transform=`scale(${lerp(.92,1,back(x))})`;
+  pop($('s03x'),t,cue('03','buying')-.3,{dy:60,rot:-3});
+  pop($('s03y2'),t,cue('03','decoding')-.3,{dy:60,rot:3});
+  $('k1').style.transform=`scaleX(${eo(P(t,cue('03','don\'t'),cue('03','don\'t')+.5))})`;
+  $('k2').style.transform=`scaleX(${eo(P(t,cue('03','nobody'),cue('03','nobody')+.5))})`;
+  pop($('s03z'),t,cue('03','stays')-.5,{dy:40});
+},
+'04'(t){
+  // the sentence: push in, then linger per chip
+  const c=cam($('c04'),t,[[0,960,470,1.12],[1.2,960,505,1.5],[SC['04'].dur,980,510,1.55]]);
+  const F=cue('04','500',0),T=cue('04','3',1),N=cue('04','november')-.1;
+  const spans=[[F,998,459,220,110],[T,890,559,270,110],[N,1240,560,240,110]];
+  let cur=null;for(const s of spans){if(t>=s[0]-.25)cur=s}
+  const h=$('hl04a');
+  if(cur){h.style.opacity=1;h.style.left=(cur[1]-cur[3]/2)+'px';h.style.top=(cur[2]-cur[4]/2)+'px';h.style.width=cur[3]+'px';h.style.height=cur[4]+'px'}
+  else h.style.opacity=0;
+},
+'05'(t){
+  cam($('c05'),t,[[0,960,560,1.3],[2,960,600,1.42],[SC['05'].dur,960,610,1.48]]);
+  pop($('co1'),t,cue('05','190')-.35,{dy:60,rot:-3});
+  pop($('co2'),t,cue('05','500')-.3,{dy:60,rot:2});
+  pop($('co3'),t,cue('05','odds')-.3,{dy:60,rot:-2});
+  pop($('co4'),t,cue('05','locked')-.3,{dy:50});
+},
+'06'(t){
+  const g=cue('06','hundred')-.3,s=cue('06','slide')-.2,d=cue('06','pay',0,true)+.7;
+  const c=cam($('c06'),t,[[0,960,430,1.15],[g,960,430,1.15],[g+.6,960,640,1.5],[s-.3,960,640,1.5],[s+.4,960,1300,1.35],[SC['06'].dur,960,1310,1.35]]);
+  // cursor drags the slider knob (track y≈1484, from x≈560 to 1340)
+  const drag=P(t,s+.5,d-.1);
+  if(t>s-.1&&t<d+.2){const [px,py]=toScreen(c,lerp(560,1340,eo(drag)),1484);cursorAt(px,py,1,drag>0&&drag<1?1:0)}
+  // flash to done
+  const f=P(t,d+.15,d+.5);$('c06b').style.opacity=f;$('c06').style.opacity=1-f;
+  cam($('c06b'),t,[[d,960,545,1.02],[SC['06'].dur,960,535,1.08]]);
+},
+'07'(t){
+  const tap=cue('07','tap'),rq=cue('07','request'),pv=cue('07','provider'),sg=cue('07','signature');
+  const c=cam($('c07'),t,[[0,960,560,1.25],[tap-.4,960,560,1.25],[tap+.5,995,420,2.0],[SC['07'].dur,995,415,2.05]]);
+  // rows in the popover (1920-space): request y≈514, provider y≈488, tee y≈450
+  if(t>rq-.1&&t<pv-.05)box('hl07a',t,rq-.1,pv-.05,830,496,350,42);
+  else if(t>=pv-.05&&t<sg-.05)box('hl07a',t,pv-.05,sg-.05,830,470,350,42);
+  else if(t>=sg-.05)box('hl07a',t,sg-.05,0,830,428,350,46);
+  else $('hl07a').style.opacity=0;
+  $('cursor').style.opacity=0;
+},
+'08'(t){
+  pop($('s08t'),t,cue('08','settlement')-.3+0.0,{dy:40});
+  pop($('n1'),t,cue('08','chainlink')-.3,{dy:70,rot:-2});
+  const a1=cue('08','contract')-.5;$('a1').style.transform=`scaleX(${eo(P(t,a1,a1+.4))})`;
+  pop($('n2'),t,cue('08','contract')-.3,{dy:70,rot:2});
+  const a2=cue('08','pays')-.5;$('a2').style.transform=`scaleX(${eo(P(t,a2,a2+.4))})`;
+  pop($('n3'),t,cue('08','pays')-.2,{dy:70,rot:-2});
+  pop($('s08f'),t,cue('08','public')-.2,{dy:20});
+},
+'09'(t){
+  const v=cue('09','vault'),dep=cue('09','deposit'),sp=cue('09','spread'),op=cue('09','open');
+  const c=cam($('c09'),t,[[0,960,420,1.2],[v-.3,960,420,1.2],[v+.5,630,560,1.55],[dep+.6,630,560,1.55],[sp-.3,1340,530,1.7],[op-.4,1340,530,1.7],[op+.6,960,540,1.12],[SC['09'].dur,960,540,1.1]]);
+  box('hl09a',t,dep-.2,sp-.4,290,800,280,130); // deposit stepper
+  box('hl09b',t,sp-.2,op-.5,1040,390,610,120); // fees number
+},
+'10'(t){
+  [...LG.children].forEach((d,i)=>{if(d.id==='flagdot')return;const a=.15+i*.07;const x=P(t,a,a+.4);d.style.opacity=x;d.style.transform=`scale(${back(x)})`});
+  const fx=P(t,.95,1.45);$('flagdot').style.opacity=fx;$('flagdot').style.transform=`translateY(${(1-back(fx))*-40}px)`;
+  pop($('s10a'),t,cue('10','trade')-.3,{dy:40});
+  pop($('s10b'),t,cue('10','happens')+.3,{dy:30});
+  pop($('s10c'),t,cue('10','live')-.3,{dy:20});
+}};
+
+const CAPS_ON=new Set(['04','05','06','07','08','09']);
+window.render=function(T){
+  const XF=.35;
+  for(const s of TL.scenes){const el=$('s'+s.id);const lt=T-s.start;
+    const on=lt>=-XF&&lt<s.dur;
+    if(!on){el.style.opacity=0;el.style.visibility='hidden';continue}
+    el.style.visibility='visible';
+    const fin=s.id==='01'?1:clamp((lt+XF)/XF);el.style.opacity=fin;
+    R[s.id](Math.max(0,lt));
+  }
+  const cur=TL.scenes.find(s=>T>=s.start&&T<s.start+s.dur);if(!cur||!['06'].includes(cur.id))$('cursor').style.opacity=0;
+  const c=TL.caps.find(c=>T>=c.t0&&T<c.t1&&CAPS_ON.has(c.scene));const cap=$('cap');
+  if(c){cap.textContent=c.text;cap.style.opacity=1}else cap.style.opacity=0;
+};
+window.ready=async function(){await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode().catch(()=>{})));return TL.total};
+</script></body></html>
