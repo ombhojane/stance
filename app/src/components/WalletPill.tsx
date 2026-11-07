@@ -145,6 +145,7 @@ function LivePill() {
           </button>
           <div className="my-1 h-px bg-line" />
           <MenuItem onClick={() => (setUpi(true), setOpen(false))}>Add money · UPI</MenuItem>
+          <MenuItem onClick={() => (setOpen(false), (window.location.href = "/profile"))}>Wallet &amp; activity</MenuItem>
           <MenuItem
             disabled={!canDrip || tx.busy}
             onClick={async () => {

@@ -16,6 +16,7 @@ import { useChainlinkSpot, useLivePosition, toUsd6 } from "@/lib/chain/live";
 import { useStanceTx } from "@/lib/chain/tx";
 import { spreadAquaAppAbi, spreadSeriesAbi } from "@/lib/chain/abis";
 import { EXPLORER } from "@/lib/chain/deployment";
+import { FastForward } from "@/components/FastForward";
 
 export function PositionView() {
   const { id } = useParams<{ id: string }>();
@@ -59,13 +60,6 @@ export function PositionView() {
     }
     dispatch({ type: "sell", id: p.id, proceeds });
     toast({ title: `Sold back for ${usd(proceeds)}`, tone: "up" });
-  };
-  const settleNow = () => {
-    const sd = a.vol * Math.sqrt(t);
-    const z = Math.sqrt(-2 * Math.log(Math.random() || 1e-9)) * Math.cos(2 * Math.PI * Math.random());
-    const s = Math.round(spot * Math.exp(-0.5 * sd * sd + sd * z) * 100) / 100;
-    dispatch({ type: "settle", id: p.id, price: s });
-    toast({ title: `${p.asset} settled at ${price(s)}`, tone: "odds" });
   };
   const redeem = async () => {
     let paid = collect;
@@ -127,14 +121,20 @@ export function PositionView() {
             onConfirm={sell}
           />
           {tx.error && <p className="text-center text-sm text-down">{tx.error}</p>}
-          {p.live ? (
+          <FastForward
+            p={p}
+            spot={spot}
+            live={!!p.live}
+            onCollect={(settlePrice, payout) => {
+              dispatch({ type: "settle", id: p.id, price: settlePrice });
+              dispatch({ type: "redeem", id: p.id, proceeds: payout });
+              toast({ title: payout > 0 ? `Collected ${usd(payout)}` : "Closed", tone: payout > p.cost ? "up" : "down" });
+            }}
+          />
+          {p.live && (
             <a href={`${EXPLORER}/tx/${p.live.txHash}`} target="_blank" rel="noreferrer" className="block text-center font-mono text-xs text-faint hover:text-ink">
-              placed onchain · view transaction
+              placed onchain · view on basescan ↗
             </a>
-          ) : (
-          <button onClick={settleNow} className="w-full text-center font-mono text-xs text-faint transition hover:text-ink">
-            demo: jump to {expiryLabel(p.expiry)} and settle
-          </button>
           )}
         </div>
       )}

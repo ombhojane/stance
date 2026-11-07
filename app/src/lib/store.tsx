@@ -51,10 +51,21 @@ export interface Toast {
   tone?: "up" | "down" | "odds";
 }
 
+/** Test-mode money movements, newest first (prod activity comes from Basescan). */
+export interface LedgerEntry {
+  id: string;
+  at: number;
+  kind: "topup" | "stance" | "sold" | "collected" | "house_in" | "house_out";
+  amount: number; // signed USD
+  live: boolean; // mirrors an onchain action (shown from Basescan in prod instead)
+  ref?: string; // position or vault id
+}
+
 interface State {
   balance: number;
   positions: Position[];
   vaults: Vault[];
+  ledger: LedgerEntry[];
   hydrated: boolean;
 }
 
@@ -112,10 +123,11 @@ function seed(): Omit<State, "hydrated"> {
       },
     ],
     vaults: [],
+    ledger: [],
   };
 }
 
-function reducer(s: State, a: Action): State {
+function baseReducer(s: State, a: Action): State {
   switch (a.type) {
     case "hydrate":
       return { ...a.state, hydrated: true };
@@ -156,6 +168,35 @@ interface Ctx extends State {
   dispatch: React.Dispatch<Action>;
   toast: (t: Omit<Toast, "id">) => void;
   dismiss: (id: string) => void;
+}
+
+function ledgerFor(s: State, a: Action): LedgerEntry | null {
+  const at = Date.now();
+  const id = `l-${at.toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const pos = (pid: string) => s.positions.find((p) => p.id === pid);
+  switch (a.type) {
+    case "fund":
+      return { id, at, kind: "topup", amount: a.amount, live: false };
+    case "buy":
+      return { id, at, kind: "stance", amount: -a.position.cost, live: !!a.position.live, ref: a.position.id };
+    case "sell":
+      return { id, at, kind: "sold", amount: a.proceeds, live: !!pos(a.id)?.live, ref: a.id };
+    case "redeem":
+      return { id, at, kind: "collected", amount: a.proceeds, live: !!pos(a.id)?.live, ref: a.id };
+    case "deposit":
+      return { id, at, kind: "house_in", amount: -a.vault.deposit, live: false, ref: a.vault.id };
+    case "withdraw":
+      return { id, at, kind: "house_out", amount: a.amount, live: false, ref: a.id };
+    default:
+      return null;
+  }
+}
+
+function reducer(s: State, a: Action): State {
+  const next = baseReducer(s, a);
+  const ledger = next.ledger ?? []; // older saved states predate the ledger
+  const e = ledgerFor(s, a);
+  return { ...next, ledger: e ? [e, ...ledger].slice(0, 200) : ledger };
 }
 
 const StoreCtx = createContext<Ctx | null>(null);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 // Everything a user can reach, including pages only reached by router.push
 // (review, confirmation) that <Link> viewport-prefetching never sees.
-const ROUTES = ["/make", "/make/review", "/make/done", "/positions", "/positions/p-seed-down", "/house", "/signals", "/"];
+const ROUTES = ["/make", "/make/review", "/make/done", "/positions", "/positions/p-seed-down", "/house", "/signals", "/profile", "/"];
 
 const idle = (fn: () => void) => {
   if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(fn, { timeout: 2000 });

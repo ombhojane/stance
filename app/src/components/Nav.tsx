@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/positions", label: "Your stances", short: "Yours" },
   { href: "/house", label: "House", short: "House" },
   { href: "/signals", label: "Signals", short: "Signals" },
+  { href: "/profile", label: "Wallet", short: "Wallet" },
 ];
 
 export function Nav() {
