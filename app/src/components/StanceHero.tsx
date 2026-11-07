@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { ArrowRight, ChevronDown, TriangleAlert } from "lucide-react";
-import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, quote, roundTo } from "@/lib/market";
+import { ASSETS, Draft, Direction, EXPIRIES, draftFromQuery, draftToQuery, expiryLabel, expiryTime, isExactExpiry, quote, roundTo } from "@/lib/market";
+import { useRanges } from "@/lib/chain/live";
+import { useLive } from "@/lib/mode";
 import { useLiveSpot } from "@/lib/store";
 import { snapTarget, useStanceQuote } from "@/lib/chain/useStanceQuote";
 import { deskChance, useDesk } from "@/lib/useDesk";
@@ -27,6 +29,12 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
   const demoSpot = useLiveSpot(draft.asset);
   const q = useStanceQuote(draft, demoSpot);
   const desk = useDesk();
+  const isLive = useLive();
+  const { ranges } = useRanges();
+  // onchain ranges with an exact expiry that can still be bought (the app's cutoff is 5 minutes)
+  const demoExpiries = isLive
+    ? [...new Set(ranges.filter((r) => isExactExpiry(r.expiryId) && !r.settled && expiryTime(r.expiryId) - 5 * 60_000 > Date.now() + 30_000).map((r) => r.expiryId))]
+    : [];
   const dc = deskChance(desk, draft, q.spot, q.K1, q.K2);
   const live = q.spot; // Chainlink ETH/USD when live, simulated in demo
   const a = ASSETS[draft.asset];
@@ -197,6 +205,23 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                   )}
                   {open === "date" && (
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {/* live onchain ranges with an exact expiry (demo ranges), while still tradeable */}
+                      {demoExpiries.map((id) => {
+                        const on = draft.expiry === id;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => {
+                              set({ expiry: id });
+                              setOpen(null);
+                            }}
+                            className={`rounded-2xl p-3.5 text-left transition active:scale-[0.98] ${on ? "bg-tile-2 ring-2 ring-up" : "bg-tile-2/60 hover:bg-tile-2"}`}
+                          >
+                            <p className="font-semibold text-ink">{expiryLabel(id)}</p>
+                            <p className="mt-2 font-mono text-xs text-odds">demo · settles in {Math.max(1, Math.round((expiryTime(id) - Date.now()) / 60000))}m</p>
+                          </button>
+                        );
+                      })}
                       {EXPIRIES.map((e) => {
                         const alt = quote({ ...draft, expiry: e.id }, live);
                         const on = draft.expiry === e.id;

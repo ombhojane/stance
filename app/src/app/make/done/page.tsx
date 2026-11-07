@@ -10,6 +10,7 @@ import { expiryLabel } from "@/lib/market";
 import { usd } from "@/lib/format";
 import { Button } from "@/components/controls";
 import { SentenceText } from "@/components/SentenceText";
+import { EXPLORER } from "@/lib/chain/deployment";
 
 export default function DonePage() {
   return (
@@ -72,6 +73,16 @@ function Done() {
           </Button>
         </Link>
       </div>
+      {p.live && (
+        <a
+          href={`${EXPLORER}/tx/${p.live.txHash}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-tile px-4 py-2 font-mono text-xs ring-1 ring-line hover:bg-tile-2"
+        >
+          onchain · {p.live.txHash.slice(0, 10)}…{p.live.txHash.slice(-6)} · view on basescan ↗
+        </a>
+      )}
     </div>
   );
 }

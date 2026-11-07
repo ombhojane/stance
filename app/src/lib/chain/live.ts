@@ -38,7 +38,8 @@ export interface LiveRange {
 const USD6 = 1e6;
 const PX8 = 1e8;
 
-export const expiryIdOf = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 10);
+/** Standard ranges settle 08:00 UTC and map to a date id; anything else (demo ranges) keeps its exact time. */
+export const expiryIdOf = (unix: number) => (unix % 86400 === 28800 ? new Date(unix * 1000).toISOString().slice(0, 10) : `t${unix}`);
 
 /** Every deployed range plus its live Aqua strategies, in one multicall. */
 export function useRanges() {

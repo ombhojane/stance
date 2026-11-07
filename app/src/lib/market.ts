@@ -39,11 +39,19 @@ export const EXPIRIES: Expiry[] = [
 export const FEE = 0.03; // taker spread on the ask
 export const BID_HAIRCUT = 0.03; // sell-back spread
 
+/** Expiry ids: "YYYY-MM-DD" settles 08:00 UTC that day; "t<unix>" is an exact onchain time (demo ranges). */
+export const isExactExpiry = (id: string) => /^t\d+$/.test(id);
+
 export function expiryTime(id: string): number {
+  if (isExactExpiry(id)) return Number(id.slice(1)) * 1000;
   return new Date(`${id}T08:00:00Z`).getTime();
 }
 
 export function expiryLabel(id: string): string {
+  if (isExactExpiry(id)) {
+    const d = new Date(expiryTime(id));
+    return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  }
   return EXPIRIES.find((e) => e.id === id)?.label ?? new Date(`${id}T08:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -214,6 +222,6 @@ export function draftFromQuery(q: URLSearchParams | null): Draft {
     amount: amount > 0 ? amount : base.amount,
     dir,
     target: target > 0 ? target : dir === "below" ? roundTo(ASSETS[base.asset].spot * 0.88, ASSETS[base.asset].grid) : base.target,
-    expiry: date && EXPIRIES.some((e) => e.id === date) ? date : base.expiry,
+    expiry: date && (EXPIRIES.some((e) => e.id === date) || isExactExpiry(date)) ? date : base.expiry,
   };
 }
