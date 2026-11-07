@@ -44,6 +44,7 @@ function Review() {
   const [details, setDetails] = useState(false);
   const wallet = q.live ? usdc.balance ?? 0 : balance;
   const enough = wallet >= q.cost;
+  const faucetWait = usdc.nextDripAt ? Math.max(0, usdc.nextDripAt - Math.floor(Date.now() / 1000)) : 0; // seconds
   const loseAt = draft.dir === "above" ? q.K1 : q.K2;
 
   const confirm = async () => {
@@ -149,6 +150,23 @@ function Review() {
         </label>
         {q.live && !isConnected ? (
           <p className="rounded-2xl bg-tile px-4 py-4 text-center text-sm text-mute">Connect a wallet (top right) to take this stance on Base Sepolia.</p>
+        ) : q.live && usdc.balance !== undefined && !enough ? (
+          // the faucet, right where it's needed: a real Base Sepolia tx that mints 10,000 test USD
+          <div className="rounded-2xl bg-tile p-4 text-center ring-1 ring-line">
+            <p className="text-sm text-mute">
+              This wallet has <span className="tnum text-ink">{usd(usdc.balance)}</span> test USD. You need <span className="tnum text-ink">{usd(q.cost)}</span>.
+            </p>
+            <button
+              disabled={tx.busy || faucetWait > 0}
+              onClick={async () => {
+                if (await tx.faucet()) usdc.refetch();
+              }}
+              className="mt-3 rounded-full bg-accent px-6 py-3 font-semibold text-on-accent transition active:scale-[0.98] disabled:opacity-50"
+            >
+              {tx.busy ? "Minting on Base Sepolia…" : faucetWait > 0 ? `Faucet again in ${Math.ceil(faucetWait / 60)}m` : "Get 10,000 test USD"}
+            </button>
+            <p className="mt-2 font-mono text-[11px] text-faint">testnet faucet · once an hour · you pay gas in Base Sepolia ETH</p>
+          </div>
         ) : (
           <SlideToConfirm
             key={`${ack}-${enough}-${tx.step}`}

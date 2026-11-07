@@ -75,7 +75,7 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
 
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const setAmount = (v: number) => {
-    const n = Math.min(50000, Math.max(50, Math.round(v)));
+    const n = Math.min(50000, Math.max(1, Math.round(v)));
     setAmtText(String(n));
     set({ amount: n });
   };
@@ -148,23 +148,38 @@ export function StanceHero({ syncUrl = false, draft: external, onDraft }: { sync
                             const t = e.target.value.replace(/[^0-9]/g, "").slice(0, 5);
                             setAmtText(t);
                             const n = Number(t);
-                            if (n >= 50 && n <= 50000) set({ amount: n });
+                            if (n >= 1 && n <= 50000) set({ amount: n });
                           }}
                           onBlur={() => setAmount(Number(amtText) || draft.amount)}
                           onKeyDown={(e) => e.key === "Enter" && setOpen(null)}
                           className="tnum w-full min-w-0 bg-transparent text-4xl font-semibold tracking-tight text-ink outline-none"
                         />
                       </div>
+                      {/* log scale: $1–$10 gets as much travel as $1,000–$10,000 */}
                       <input
                         type="range"
-                        min={100}
-                        max={10000}
-                        step={50}
-                        value={Math.min(10000, Math.max(100, draft.amount))}
-                        onChange={(e) => setAmount(Number(e.target.value))}
+                        min={0}
+                        max={1000}
+                        step={1}
+                        value={Math.round((Math.log10(Math.min(10000, Math.max(1, draft.amount))) / 4) * 1000)}
+                        onChange={(e) => {
+                          const v = Math.pow(10, (Number(e.target.value) / 1000) * 4);
+                          setAmount(v < 20 ? Math.round(v) : v < 200 ? Math.round(v / 5) * 5 : Math.round(v / 50) * 50);
+                        }}
                         aria-label="Amount you want to make"
                         className="mt-4 w-full accent-accent"
                       />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {[1, 10, 100, 500].map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => setAmount(v)}
+                            className={`tnum rounded-full px-3.5 py-1.5 text-sm font-medium transition ${draft.amount === v ? "bg-ink text-bg" : "bg-tile-2 text-mute hover:text-ink"}`}
+                          >
+                            ${v}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {open === "target" && (
