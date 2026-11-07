@@ -1,7 +1,7 @@
 # Stance web app: Next.js standalone server on Cloud Run
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --no-audit --no-fund
 
 FROM node:22-alpine AS build

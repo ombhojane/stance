@@ -7,6 +7,8 @@ import { useUsd } from "@/lib/chain/live";
 import { useStanceTx } from "@/lib/chain/tx";
 import { useStore } from "@/lib/store";
 import { RollingNumber } from "./RollingNumber";
+import { UpiSheet } from "./UpiSheet";
+import { usePrivyBridge } from "@/lib/chain/privy";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -20,6 +22,7 @@ export function WalletPill() {
 function DemoPill() {
   const { balance, hydrated, dispatch } = useStore();
   const [open, setOpen] = useState(false);
+  const [upi, setUpi] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const close = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
@@ -36,6 +39,15 @@ function DemoPill() {
           <p className="px-3 py-2 text-xs text-mute">Test money. Nothing on chain.</p>
           <button
             onClick={() => {
+              setUpi(true);
+              setOpen(false);
+            }}
+            className="w-full rounded-xl px-3 py-2 text-left font-medium hover:bg-tile-2"
+          >
+            Add money · UPI
+          </button>
+          <button
+            onClick={() => {
               dispatch({ type: "reset" });
               setOpen(false);
             }}
@@ -45,6 +57,7 @@ function DemoPill() {
           </button>
         </div>
       )}
+      <UpiSheet open={upi} onClose={() => setUpi(false)} />
     </div>
   );
 }
@@ -59,6 +72,9 @@ function LivePill() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [upi, setUpi] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const privy = usePrivyBridge();
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -67,7 +83,19 @@ function LivePill() {
     return () => document.removeEventListener("pointerdown", close);
   }, []);
 
-  if (!mounted) return <span className="h-9 w-24 rounded-full bg-tile ring-1 ring-line" />;
+  if (!mounted || (privy && !privy.ready)) return <span className="h-9 w-24 rounded-full bg-tile ring-1 ring-line" />;
+
+  // Privy: one button for Google, email, Apple, X or an existing wallet
+  if (privy && !privy.authenticated) {
+    return (
+      <button onClick={privy.login} className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition active:scale-95">
+        Sign in
+      </button>
+    );
+  }
+  if (privy && privy.authenticated && !isConnected) {
+    return <span className="rounded-full bg-tile px-4 py-2 text-sm text-mute ring-1 ring-line">Setting up wallet…</span>;
+  }
 
   if (!isConnected) {
     const pick = (id: string) => {
@@ -103,7 +131,20 @@ function LivePill() {
         <span className="font-mono text-[11px] font-normal text-mute">{short(address!)}</span>
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-60 overflow-hidden rounded-2xl bg-tile p-1 shadow-xl ring-1 ring-line">
+        <div className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-2xl bg-tile p-1 shadow-xl ring-1 ring-line">
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(address!);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1200);
+            }}
+            className="block w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-tile-2"
+          >
+            <span className="block truncate text-sm font-medium">{privy?.label ?? "Your wallet"}</span>
+            <span className="font-mono text-[11px] text-mute">{copied ? "copied" : short(address!)}{privy?.embedded ? " · gas covered" : ""}</span>
+          </button>
+          <div className="my-1 h-px bg-line" />
+          <MenuItem onClick={() => (setUpi(true), setOpen(false))}>Add money · UPI</MenuItem>
           <MenuItem
             disabled={!canDrip || tx.busy}
             onClick={async () => {
@@ -112,10 +153,19 @@ function LivePill() {
           >
             {tx.busy ? "Sending test USD…" : canDrip ? "Get 10,000 test USD" : `Faucet again ${new Date(nextDripAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
           </MenuItem>
-          <MenuItem onClick={() => (disconnect(), setOpen(false))}>Disconnect</MenuItem>
+          <MenuItem
+            onClick={async () => {
+              setOpen(false);
+              if (privy) await privy.logout();
+              disconnect();
+            }}
+          >
+            {privy ? "Sign out" : "Disconnect"}
+          </MenuItem>
           {tx.error && <p className="px-3 py-2 text-xs text-down">{tx.error}</p>}
         </div>
       )}
+      <UpiSheet open={upi} onClose={() => setUpi(false)} />
     </div>
   );
 }

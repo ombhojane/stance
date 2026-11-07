@@ -66,6 +66,7 @@ type Action =
   | { type: "redeem"; id: string; proceeds: number }
   | { type: "deposit"; vault: Vault }
   | { type: "withdraw"; id: string; amount: number }
+  | { type: "fund"; amount: number }
   | { type: "reset" };
 
 const KEY = "stance.v2";
@@ -141,6 +142,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, balance: s.balance - a.vault.deposit, vaults: [a.vault, ...s.vaults] };
     case "withdraw":
       return { ...s, balance: s.balance + a.amount, vaults: s.vaults.filter((v) => v.id !== a.id) };
+    case "fund":
+      return { ...s, balance: s.balance + a.amount };
     case "reset": {
       // test-money reset: never drop the records of real onchain stances
       const fresh = seed();
