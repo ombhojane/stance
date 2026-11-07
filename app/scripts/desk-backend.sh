@@ -15,8 +15,14 @@ case "${1:-status}" in
     gcloud run services update stance "${GCP[@]}" --update-env-vars DESK_BACKEND=openai,OPENAI_MODEL=gpt-5-mini --quiet
     echo "desk → OpenAI gpt-5-mini" ;;
   status)
-    gcloud run services describe stance "${GCP[@]}" \
-      --format='value(spec.template.spec.containers[0].env)' | tr ';' '\n' | grep -oE "'name': '(DESK_BACKEND|OPENAI_MODEL|ZG_MODEL)', 'value': '[^']*'" || echo "DESK_BACKEND unset → 0G first, OpenAI fallback" ;;
+    gcloud run services describe stance "${GCP[@]}" --format=json | python3 -I -c '
+import json, sys
+d = json.load(sys.stdin)
+env = {e["name"]: e.get("value") for e in d["spec"]["template"]["spec"]["containers"][0].get("env", [])}
+b = env.get("DESK_BACKEND")
+print("revision:", d["status"].get("latestReadyRevisionName"))
+print("desk:", {"zg": "0G (0gm-1.0-35b-a3b)", "openai": "OpenAI " + (env.get("OPENAI_MODEL") or "gpt-5-mini")}.get(b, "unset -> 0G first, OpenAI fallback"))
+' ;;
   *)
     echo "usage: $0 0g|openai|status" >&2; exit 1 ;;
 esac
