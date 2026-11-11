@@ -9,7 +9,8 @@
     "desk:eval": "node scripts/desk-eval.mjs",
     "desk:0g": "bash scripts/desk-backend.sh 0g",
     "desk:openai": "bash scripts/desk-backend.sh openai",
-    "desk:status": "bash scripts/desk-backend.sh status"
+    "desk:status": "bash scripts/desk-backend.sh status",
+    "desk:replay": "bash scripts/desk-backend.sh replay"
   },
   "dependencies": {
     "@0gfoundation/0g-compute-ts-sdk": "^0.9.0",

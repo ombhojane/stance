@@ -71,11 +71,18 @@ export function DeskChip({ desk, expiry, textbook, deskC }: { desk: DeskClientRe
             <span className="break-all text-ink">{short(desk.requestId)}</span>
             <span className="text-faint">read at</span>
             <span className="text-ink">
-              {new Date(desk.at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} · {desk.latencyMs}ms
+              {desk.replay
+                ? new Date(desk.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                : new Date(desk.at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}{" "}
+              · {desk.latencyMs}ms
             </span>
           </span>
           <span className="mt-3 block border-t border-line pt-2 text-[10px] leading-relaxed text-faint">
-            {zg ? "Priced by 0G's own model running sealed in a TEE. We check the enclave's signature on this exact output against the provider registered on 0G Chain." : "Priced by a fallback model; 0G receipt unavailable."}
+            {desk.replay
+              ? "Recorded 0G read: the exact output and receipt 0G's TEE returned on this date, verified then. Live inference is paused."
+              : zg
+                ? "Priced by 0G's own model running sealed in a TEE. We check the enclave's signature on this exact output against the provider registered on 0G Chain."
+                : "Priced by a fallback model; 0G receipt unavailable."}
           </span>
         </span>
       )}

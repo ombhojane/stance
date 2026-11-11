@@ -8,6 +8,7 @@ import { EXPIRIES, yearsUntil, ASSETS } from "@/lib/market";
 import { gatherContext, MarketContext } from "./context";
 import { backends, complete } from "./llm";
 import { verifyTee } from "./verify";
+import { RECORDED_0G_READ } from "./replay";
 
 export interface DeskRead {
   headline: string; // one plain sentence for the UI
@@ -25,6 +26,7 @@ export interface DeskRead {
   latencyMs: number;
   at: number;
   context: MarketContext | null;
+  replay?: boolean; // a recorded read served without a new inference call
 }
 
 const TTL = 5 * 60_000;
@@ -152,6 +154,8 @@ async function compute(): Promise<DeskRead> {
 
 /** Cached read; kicks off a background refresh when stale. */
 export async function getDeskRead(force = false): Promise<DeskRead> {
+  // replay: serve a real recorded 0G read, no inference, no cost (see replay.ts)
+  if (process.env.DESK_BACKEND === "replay") return RECORDED_0G_READ;
   const fresh = cache && Date.now() - cache.at < TTL;
   if (cache && fresh && !force) return cache;
   if (!inflight) {
